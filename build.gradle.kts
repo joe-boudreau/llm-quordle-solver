@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.1.20"
+    kotlin("plugin.serialization") version "2.1.20"
     application
 }
 
@@ -10,6 +11,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     testImplementation(kotlin("test"))
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.seleniumhq.selenium:selenium-java:4.33.0")
     implementation("org.seleniumhq.selenium:selenium-chrome-driver:4.33.0")
     implementation("org.seleniumhq.selenium:selenium-support:4.33.0")

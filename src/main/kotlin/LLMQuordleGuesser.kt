@@ -2,6 +2,8 @@ import com.aallam.openai.api.chat.ChatCompletionChunk
 import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
+import com.aallam.openai.api.chat.ChatResponseFormat.Companion.jsonSchema
+import com.aallam.openai.api.chat.JsonSchema
 import com.aallam.openai.api.http.Timeout
 import com.aallam.openai.api.logging.LogLevel
 import com.aallam.openai.api.model.ModelId
@@ -14,6 +16,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNames
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class LLMQuordleGuesser {
 
@@ -44,19 +56,45 @@ class LLMQuordleGuesser {
     ```
     
     You will think step by step, analyzing the feedback for each guess across all 4 boards.
-    Use reasoning to eliminate and confirm letter positions. At the end, output your final guess in this format:
+    Use reasoning to eliminate and confirm letter positions.
 
-    Final Answer: <5-letter word>
-    
-    You may include as much reasoning as you like, but the end of your response must be in the above format. Nothing
-    should be after the "Final Answer: <5-letter word>" line.
-    Example response:
-    ```
-    <other reasoning...>
-    Final Answer: CHARM
-    ```
-    
+    The final_answer must be exactly 5 letters, all uppercase.
     """.trimIndent()
+
+    val schemaJson = JsonObject(mapOf(
+        "type" to JsonPrimitive("object"),
+        "properties" to JsonObject(mapOf(
+            "reasoning" to JsonObject(mapOf(
+                "type" to JsonPrimitive("string"),
+                "description" to JsonPrimitive("Chain of thought reasoning leading to the final answer")
+            )),
+            "final_answer" to JsonObject(mapOf(
+                "type" to JsonPrimitive("string"),
+                "description" to JsonPrimitive("The final 5-letter word guess, in all uppercase")
+            ))
+        )),
+        "additionalProperties" to JsonPrimitive(false),
+        "required" to JsonArray(
+            listOf(
+                JsonPrimitive("reasoning"),
+                JsonPrimitive("final_answer")
+            )
+        )
+    ))
+
+    @Serializable
+    data class QuordleGuessResponse(
+        @SerialName("reasoning")
+        val reasoning: String,
+        @SerialName("final_answer")
+        val finalAnswer: String
+    )
+
+    val responseSchema = JsonSchema(
+        name = "quordle_guess_response",
+        schema = schemaJson,
+        strict = true
+    )
 
     private val openAiClient = OpenAI(
         token = System.getenv("OPENAI_API_KEY"),
@@ -70,24 +108,26 @@ class LLMQuordleGuesser {
         // Try up to 3 times to get a valid 5-letter word
         for (attempt in 1..3) {
             try {
-                val wordResponse = runBlocking { chatCompletion(prompt) }
+                val jsonResponse = runBlocking { chatCompletion(prompt) }
 
-                // just print last 5 lines of the response for debugging
-                println("LLM response on attempt $attempt:\n${wordResponse.lines().takeLast(5).joinToString("\n")}")
+                // Print response for debugging
+                //println("LLM JSON response on attempt $attempt:\n$jsonResponse")
 
-                val finalAnswerWord = wordResponse.lines()
-                    .firstOrNull { it.startsWith("Final Answer:") }
-                    ?.removePrefix("Final Answer:")?.trim() ?: ""
+                try {
+                    // Parse the JSON response
+                    val response = Json.decodeFromString<QuordleGuessResponse>(jsonResponse)
+                    val finalAnswer = response.finalAnswer.trim().uppercase()
 
-                // Process the word
-                val processedWord = finalAnswerWord.trim().uppercase()
-
-                // Check if it's 5 letters
-                if (processedWord.length == 5) {
-                    println("LLM returned valid word: '$processedWord' on attempt $attempt")
-                    return processedWord
-                } else {
-                    println("Attempt $attempt: LLM returned invalid word: '$finalAnswerWord', trying again...")
+                    // Check if it's 5 letters
+                    if (finalAnswer.length == 5) {
+                        println("LLM returned valid word: '$finalAnswer' on attempt $attempt")
+                        return finalAnswer
+                    } else {
+                        println("Attempt $attempt: LLM returned invalid word: '$finalAnswer', trying again...")
+                    }
+                } catch (e: Exception) {
+                    println("Error parsing JSON response on attempt $attempt: ${e.message}")
+                    continue // Try again with another request
                 }
             } catch (e: Exception) {
                 println("Error sending prompt on attempt $attempt: ${e.message}")
@@ -109,7 +149,9 @@ class LLMQuordleGuesser {
                 )
             ),
             //reasoningEffort = Effort("high"),
+            responseFormat = jsonSchema(responseSchema)
         )
+
         val completionFlow: Flow<ChatCompletionChunk> = openAiClient.chatCompletions(chatCompletionRequest)
         // stream the response to standard out and also collect into a single string
         val response = completionFlow.map {it.choices.firstOrNull()?.delta?.content ?: ""}
