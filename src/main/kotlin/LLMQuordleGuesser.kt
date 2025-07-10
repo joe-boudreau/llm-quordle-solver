@@ -60,8 +60,8 @@ class LLMQuordleGuesser {
 
     private val openAiClient = OpenAI(
         token = System.getenv("OPENAI_API_KEY"),
-        timeout = Timeout(socket = 60.seconds),
-        logging = LoggingConfig(logLevel = LogLevel.None)
+        timeout = Timeout(socket = 30.seconds, connect = 10.seconds, request = 60.seconds),
+        logging = LoggingConfig(logLevel = LogLevel.Headers)
     )
 
     fun guessWord(gameState: GameState): String {
@@ -69,23 +69,29 @@ class LLMQuordleGuesser {
         
         // Try up to 3 times to get a valid 5-letter word
         for (attempt in 1..3) {
-            val wordResponse = runBlocking { chatCompletion(prompt) }
+            try {
+                val wordResponse = runBlocking { chatCompletion(prompt) }
 
-            //println("LLM response for attempt $attempt:\n$wordResponse")
+                // just print last 5 lines of the response for debugging
+                println("LLM response on attempt $attempt:\n${wordResponse.lines().takeLast(5).joinToString("\n")}")
 
-            val finalAnswerWord = wordResponse.lines()
-                .firstOrNull { it.startsWith("Final Answer:") }
-                ?.removePrefix("Final Answer:")?.trim() ?: ""
+                val finalAnswerWord = wordResponse.lines()
+                    .firstOrNull { it.startsWith("Final Answer:") }
+                    ?.removePrefix("Final Answer:")?.trim() ?: ""
 
-            // Process the word
-            val processedWord = finalAnswerWord.trim().uppercase()
+                // Process the word
+                val processedWord = finalAnswerWord.trim().uppercase()
 
-            // Check if it's 5 letters
-            if (processedWord.length == 5) {
-                println("LLM suggested word: $processedWord")
-                return processedWord
-            } else {
-                println("Attempt $attempt: LLM returned invalid word: '$finalAnswerWord', trying again...")
+                // Check if it's 5 letters
+                if (processedWord.length == 5) {
+                    println("LLM returned valid word: '$processedWord' on attempt $attempt")
+                    return processedWord
+                } else {
+                    println("Attempt $attempt: LLM returned invalid word: '$finalAnswerWord', trying again...")
+                }
+            } catch (e: Exception) {
+                println("Error sending prompt on attempt $attempt: ${e.message}")
+                continue // Try again
             }
         }
 
@@ -94,9 +100,8 @@ class LLMQuordleGuesser {
 
     suspend fun chatCompletion(prompt: String): String {
         //println("Sending prompt to OpenAI\n: $prompt")
-
         val chatCompletionRequest = ChatCompletionRequest(
-            model = ModelId("o4-mini"),
+            model = ModelId("gpt-4.1-nano"),
             messages = listOf(
                 ChatMessage(
                     role = ChatRole.User,
@@ -108,10 +113,11 @@ class LLMQuordleGuesser {
         val completionFlow: Flow<ChatCompletionChunk> = openAiClient.chatCompletions(chatCompletionRequest)
         // stream the response to standard out and also collect into a single string
         val response = completionFlow.map {it.choices.firstOrNull()?.delta?.content ?: ""}
-            .onEach { print(it) }
+            //.onEach { print(it) }
             .toList()
             .joinToString("")
 
+        println("\n")
         //val response = completion.choices.firstOrNull()?.message?.content?.trim() ?: ""
         return response
     }
