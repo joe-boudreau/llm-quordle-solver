@@ -8,9 +8,9 @@ data class GameState(
 
     fun isSolved() = boardStates.all { it.isSolved() }
 
-    fun isFailed() = boardStates[0].attempts.size >= 9 && !isSolved()
+    fun isFailed() = numAttempts() >= 9 && !isSolved()
 
-    fun numAttempts() = boardStates[0].attempts.size
+    fun numAttempts() = boardStates.maxOf {it.attempts.size}
 }
 
 data class BoardState(
