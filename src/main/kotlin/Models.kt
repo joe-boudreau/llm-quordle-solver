@@ -3,7 +3,7 @@ data class GameState(
 ) {
     override fun toString() = "Attempts: ${numAttempts()} / 9 \n" +
             this.boardStates.withIndex().joinToString("\n\n") { (i, boardState) ->
-                "Board ${i + 1}, Solved: ${boardState.isSolved()}\n$boardState"
+                "Board ${i + 1}, Solved: ${boardState.isSolved()}, Guess Results:\n$boardState"
             }
 
     fun isSolved() = boardStates.all { it.isSolved() }
@@ -24,8 +24,13 @@ data class Attempt(
     val word: String,
     val feedback: List<TileState>
 ) {
-    override fun toString() = "$word -> ${feedback.joinToString(", ") { it.name }}"
-    //override fun toString() = "${word.toCharArray().joinToString(" ")} -> ${feedback.joinToString(", ") { it.name }}"
+    override fun toString() =
+        "$word => ${word
+                        .toCharArray()
+                        .zip(feedback)
+                        .joinToString(", ") 
+                        { (char, state) -> "$char $state" }
+        }"
 
     fun isCorrect() = feedback.all { it == TileState.CORRECT }
 }
@@ -34,5 +39,14 @@ enum class TileState {
     CORRECT,     // Green
     PRESENT,     // Yellow
     ABSENT,      // Grey
-    EMPTY       // No guess yet
+    EMPTY;       // No guess yet
+
+    override fun toString(): String {
+        return when (this) {
+            CORRECT -> "✓"
+            PRESENT -> "↔"
+            ABSENT -> "✕"
+            EMPTY -> " "
+        }
+    }
 }

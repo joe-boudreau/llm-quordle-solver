@@ -2,6 +2,7 @@ import com.aallam.openai.api.chat.ChatCompletionRequest
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.chat.ChatResponseFormat.Companion.jsonSchema
+import com.aallam.openai.api.chat.Effort
 import com.aallam.openai.api.chat.JsonSchema
 import com.aallam.openai.api.http.Timeout
 import com.aallam.openai.api.logging.LogLevel
@@ -31,17 +32,25 @@ class LLMQuordleGuesser {
 
     1. Goal: Guess four secret 5-letter words simultaneously
     2. You have 9 total attempts to solve all four words
-    3. After each guess, tiles change color to provide feedback:
-       - CORRECT: Letter is correct and in the right position
-       - PRESENT: Letter is in the word but in the wrong position
-       - ABSENT: Letter is not in the word at all
+    3. After each guess, the word's character tiles are changed to provide feedback. There are three possible states:
+       ✓ = CORRECT = Letter is correct and in the right position
+       ↔ = PRESENT = Letter is in the word but in the wrong position
+       ✕ = ABSENT = Letter is not in the word at all
 
     Each word is independent, but you use the same guesses across all four
     word puzzles. The challenge is to strategically choose words that help
     you solve multiple puzzles efficiently. A successful game means
     correctly guessing all four words within 9 attempts.
     
-    Help the user guess the next word based on the current game state.
+    STRATEGIC APPROACH:
+    - Early game: Focus on common vowels (A, E, I, O, U) and consonants (R, S, T, L, N)
+    - For each board, track which letters are confirmed, eliminated, or need positioning
+    - Prioritize words that can solve multiple boards simultaneously
+    - Use process of elimination: avoid letters marked as ✕
+    - Position letters correctly based on ✓ or ↔ feedback
+    - Common 5-letter word patterns: consonant-vowel-consonant-vowel-consonant
+    
+    Help the user choose the next word to guess based on the current game state.
     """.trimIndent()
 
     private val userPromptTemplate = """
@@ -50,8 +59,8 @@ class LLMQuordleGuesser {
     {gameState}
     ```
     
-    You will think step by step, using the feedback from each previous guess across all 4 boards.
-    Use reasoning to eliminate and confirm letter positions.
+    Use reasoning and consider the feedback from the previous guesses across 
+    all 4 boards to eliminate and confirm letter positions.
 
     The final_answer must be exactly 5 letters, all uppercase.
     """.trimIndent()
@@ -100,7 +109,7 @@ class LLMQuordleGuesser {
 
     private val openAiClient = OpenAI(
         token = System.getenv("OPENAI_API_KEY"),
-        timeout = Timeout(socket = 60.seconds, connect = 10.seconds, request = 180.seconds),
+        timeout = Timeout(socket = 60.seconds, connect = 10.seconds, request = 300.seconds),
         logging = LoggingConfig(logLevel = LogLevel.Headers)
     )
 
@@ -145,7 +154,7 @@ class LLMQuordleGuesser {
         val chatCompletionRequest = ChatCompletionRequest(
             model = modelId,
             messages = allMessages,
-            //reasoningEffort = Effort("high"),
+            reasoningEffort = Effort("medium"),
             responseFormat = jsonSchema(responseSchema)
         )
 
