@@ -9,6 +9,7 @@ import com.aallam.openai.api.logging.LogLevel
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
+import com.aallam.openai.client.RetryStrategy
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.seconds
 import io.ktor.client.engine.cio.*
@@ -65,7 +66,7 @@ class LLMQuordleGuesser {
     The final_answer must be exactly 5 letters, all uppercase.
     """.trimIndent()
 
-    private val allMessages = mutableListOf(
+    val allMessages = mutableListOf(
         ChatMessage(
             role = ChatRole.System,
             content = systemPrompt,
@@ -113,7 +114,7 @@ class LLMQuordleGuesser {
         logging = LoggingConfig(logLevel = LogLevel.Headers)
     )
 
-    private val modelId = ModelId(System.getenv("OPENAI_MODEL_ID"))
+    val modelId = ModelId(System.getenv("OPENAI_MODEL_ID"))
 
     fun guessWord(gameState: GameState): String {
         val prompt = userPromptTemplate.replace("{gameState}", gameState.toString())
@@ -154,7 +155,7 @@ class LLMQuordleGuesser {
         val chatCompletionRequest = ChatCompletionRequest(
             model = modelId,
             messages = allMessages,
-            reasoningEffort = Effort("medium"),
+            reasoningEffort = Effort("low"),
             responseFormat = jsonSchema(responseSchema)
         )
 
