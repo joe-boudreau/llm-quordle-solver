@@ -1,3 +1,6 @@
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class GameState(
     val boardStates: List<BoardState>,
 ) {
@@ -13,6 +16,7 @@ data class GameState(
     fun numAttempts() = boardStates.maxOf {it.attempts.size}
 }
 
+@Serializable
 data class BoardState(
     val attempts: List<Attempt>,
 ) {
@@ -20,6 +24,7 @@ data class BoardState(
     fun isSolved() = attempts.any { it.isCorrect() }
 }
 
+@Serializable
 data class Attempt(
     val word: String,
     val feedback: List<TileState>
@@ -35,6 +40,7 @@ data class Attempt(
     fun isCorrect() = feedback.all { it == TileState.CORRECT }
 }
 
+@Serializable
 enum class TileState {
     CORRECT,     // Green
     PRESENT,     // Yellow
