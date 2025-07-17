@@ -142,6 +142,7 @@ fun main() {
             println(gameState)
 
             if (gameState.isSolved()) {
+                saveGameState(gameState, llmGuesser.allMessages)
                 saveHtmlReplay(gameState, llmGuesser.allMessages)
                 updateLLMGuesserStats(gameState, llmGuesser.modelId.toString())
                 println("All puzzles solved!")
@@ -149,6 +150,7 @@ fun main() {
             }
 
             if (gameState.isFailed()) {
+                saveGameState(gameState, llmGuesser.allMessages)
                 saveHtmlReplay(gameState, llmGuesser.allMessages)
                 updateLLMGuesserStats(gameState, llmGuesser.modelId.toString())
                 println("You lose. Game over!")
@@ -166,119 +168,18 @@ fun main() {
 }
 
 fun updateLLMGuesserStats(gameState: GameState, modelId: String) {
-    TODO("Not yet implemented")
-}
-
-
-fun saveHtmlReplay(
-    gameState: GameState,
-    allMessages: MutableList<ChatMessage>
-) {
-    // Generate HTML replay using kotlinx.html
-    val htmlContent = createHTML().html {
-        head {
-            meta(charset = "utf-8")
-            title { +"Quordle Replay" }
-            style {
-                unsafe {
-                    raw("""
-                    body { margin: 0; padding: 0; font-family: sans-serif; }
-                        .container { display: flex; height: 100vh; }
-                        .left { flex: 1; padding: 10px; overflow: auto; background: #f0f0f0; }
-                        .right { flex: 1; padding: 10px; overflow: auto; background: #ffffff; position: relative; }
-                        .boards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-                        .board-container { background: #ffffff; padding: 10px; border-radius: 4px; }
-                        .board { display: grid; grid-template-columns: repeat(5, 30px); gap: 4px; margin-bottom: 10px; }
-                        .tile { width: 30px; height: 30px; display: inline-block; text-align: center; line-height: 30px; font-weight: bold; color: #000; }
-                        .tile.CORRECT { background: #6aaa64; }
-                        .tile.PRESENT { background: #c9b458; }
-                        .tile.ABSENT { background: #787c7e; }
-                        .tile.EMPTY { background: #ffffff; border: 1px solid #ccc; }
-                        .message { margin-bottom: 20px; white-space: pre-wrap; }
-                        .hidden { visibility: hidden; }
-                        .board-row { visibility: hidden; }
-                    """
-                    )
-                }
-            }
-        }
-        body {
-            div(classes = "container") {
-                div(classes = "left") {
-                    div(classes = "boards-grid") {
-                        gameState.boardStates.forEach { boardState ->
-                            div(classes = "board-container") {
-                                // Nested grid of attempts per board
-                                boardState.attempts.forEachIndexed { ai, attempt ->
-                                    div(classes = "board-row") {
-                                        attributes["data-attempt-index"] = ai.toString()
-                                        div(classes = "board") {
-                                            attempt.word.toCharArray().zip(attempt.feedback).forEach { (ch, state) ->
-                                                span(classes = "tile ${state.name}") { +ch.toString() }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                div(classes = "right") {
-                    allMessages.forEachIndexed { idx, msg ->
-                        div(classes = "message hidden") {
-                            attributes["data-index"] = idx.toString()
-                            attributes["data-role"] = msg.role::class.simpleName ?: ""
-                            when (msg.role) {
-                                ChatRole.User -> p { b { +"User: " }; +msg.content.orEmpty() }
-                                ChatRole.System -> p { i { +"System: " }; +msg.content.orEmpty() }
-                                ChatRole.Assistant -> p { b { +"LLM: " }; +msg.content.orEmpty() }
-                                else -> p { +msg.content.orEmpty() }
-                            }
-                        }
-                    }
-                }
-            }
-            script {
-                unsafe {
-                    raw("""
-                        const messages = document.querySelectorAll('.message');
-                        let current = 0;
-                        let attemptCount = 0;
-                        function revealRowsForAttempt(idx) {
-                            document.querySelectorAll('[data-attempt-index="'+idx+'"]').forEach(el => el.style.visibility = 'visible');
-                        }
-                        function showNext() {
-                            if (current >= messages.length) return;
-                            const el = messages[current];
-                            const role = el.getAttribute('data-role');
-                            el.classList.remove('hidden');
-                            const text = el.innerText;
-                            el.innerText = '';
-                            let i = 0;
-                            function typeChar() {
-                                if (i < text.length) {
-                                    el.innerText += text.charAt(i);
-                                    i++;
-                                    setTimeout(typeChar, 20);
-                                } else {
-                                    if (role === 'Assistant') {
-                                        revealRowsForAttempt(attemptCount);
-                                        attemptCount++;
-                                    }
-                                    current++;
-                                    setTimeout(showNext, 500);
-                                }
-                            }
-                            typeChar();
-                        }
-                        window.onload = showNext;
-                     """
-                     )
-                 }
-             }
-        }
+    // Update LLM guesser stats based on the game state
+    val statsFile = File("llm_guesser_stats.json")
+    val stats = if (statsFile.exists()) {
+        kotlinx.serialization.json.Json.decodeFromString<MutableMap<String, Int>>(statsFile.readText())
+    } else {
+        mutableMapOf()
     }
-    // Write to static path
-    File("replay.html").writeText(htmlContent)
-    println("Replay saved to replay.html")
+
+    // Increment the count for this model ID
+    stats[modelId] = stats.getOrDefault(modelId, 0) + 1
+
+    // Save updated stats back to file
+    statsFile.writeText(kotlinx.serialization.json.Json.encodeToString(stats))
+    println("LLM Guesser stats updated for model $modelId")
 }
