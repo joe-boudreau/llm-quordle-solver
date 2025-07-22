@@ -1,3 +1,4 @@
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -56,3 +57,11 @@ enum class TileState {
         }
     }
 }
+
+@Serializable
+data class QuordleGuessResponse(
+    @SerialName("reasoning")
+    val reasoning: String,
+    @SerialName("final_answer")
+    val finalAnswer: String
+)

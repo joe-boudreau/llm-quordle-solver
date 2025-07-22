@@ -9,12 +9,9 @@ import com.aallam.openai.api.logging.LogLevel
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
 import com.aallam.openai.client.OpenAI
-import com.aallam.openai.client.RetryStrategy
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Duration.Companion.seconds
 import io.ktor.client.engine.cio.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -93,14 +90,6 @@ class LLMQuordleGuesser {
             )
         )
     ))
-
-    @Serializable
-    data class QuordleGuessResponse(
-        @SerialName("reasoning")
-        val reasoning: String,
-        @SerialName("final_answer")
-        val finalAnswer: String
-    )
 
     val responseSchema = JsonSchema(
         name = "quordle_guess_response",
