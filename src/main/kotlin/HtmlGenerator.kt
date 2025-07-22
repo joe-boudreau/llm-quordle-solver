@@ -66,7 +66,8 @@ fun saveHtmlReplay(
                     .tile.ABSENT { background-color: #787c7e; border-color: #787c7e; color: white; }
                     .tile.EMPTY { background-color: #ffffff; border-color: #d3d6da; color: #000000; }
                     .tile.placeholder { background-color: #ffffff; border-color: #d3d6da; color: transparent; }
-                    .message { margin: 5px; padding: 12px 16px; border-radius: 8px; white-space: pre-wrap; max-width: 80%; }
+                    .message { margin: 5px; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
+                    .message p { margin: 0; padding: 0; white-space: pre-wrap; line-height: 1.4; }
                     .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; font-style: italic; }
                     .message.reasoning { align-self: flex-start; background-color: #f5f5f5; border: 1px solid #ddd; }
                     .message.guess { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
