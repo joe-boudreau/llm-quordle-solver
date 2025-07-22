@@ -66,12 +66,11 @@ fun saveHtmlReplay(
                     .tile.ABSENT { background-color: #787c7e; border-color: #787c7e; color: white; }
                     .tile.EMPTY { background-color: #ffffff; border-color: #d3d6da; color: #000000; }
                     .tile.placeholder { background-color: #ffffff; border-color: #d3d6da; color: transparent; }
-                    .final-answers { margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; width: 320px; }
-                    .final-answers h3 { margin: 0 0 10px 0; font-size: 16px; color: #333; }
-                    .final-answer { margin: 5px 0; padding: 8px 12px; background: #ffffff; border: 2px solid #6aaa64; border-radius: 6px; font-weight: bold; font-size: 14px; text-transform: uppercase; text-align: center; }
                     .message { margin: 5px; padding: 12px 16px; border-radius: 8px; white-space: pre-wrap; max-width: 80%; }
-                    .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: center; text-align: center; font-style: italic; }
+                    .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; font-style: italic; }
                     .message.reasoning { align-self: flex-start; background-color: #f5f5f5; border: 1px solid #ddd; }
+                    .message.guess { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
+                    .guess-word { font-weight: bold; text-transform: uppercase; }
                     .hidden { display: none; }
                     .role-indicator { display: block; font-style: italic; font-size: 0.75em; margin-bottom: 4px; color: #666; }
                 """
@@ -102,17 +101,6 @@ fun saveHtmlReplay(
                             }
                         }
                     }
-
-                    // Final answers section
-                    div(classes = "final-answers") {
-                        +"Final Answers:"
-                        llmGuessResponses.forEachIndexed { index, response ->
-                            div(classes = "final-answer hidden") {
-                                attributes["data-guess-index"] = index.toString()
-                                +response.finalAnswer
-                            }
-                        }
-                    }
                 }
                 div(classes = "right") {
                     // Show system message first
@@ -125,13 +113,27 @@ fun saveHtmlReplay(
                         }
                     }
 
-                    // Show reasoning from LLM responses
+                    // Show reasoning and guess messages in pairs
                     llmGuessResponses.forEachIndexed { index, response ->
+                        // Reasoning message
                         div(classes = "message reasoning hidden") {
                             attributes["data-index"] = "reasoning-$index"
                             attributes["data-role"] = "reasoning"
-                            small(classes = "role-indicator") { i { +"LLM Reasoning" } }
+                            attributes["data-attempt-index"] = index.toString()
+                            small(classes = "role-indicator") { i { +"LLM" } }
                             p { +response.reasoning }
+                        }
+
+                        // Guess message
+                        div(classes = "message guess hidden") {
+                            attributes["data-index"] = "guess-$index"
+                            attributes["data-role"] = "guess"
+                            attributes["data-attempt-index"] = index.toString()
+                            small(classes = "role-indicator") { i { +"LLM" } }
+                            p {
+                                +"Guess: "
+                                span(classes = "guess-word") { +response.finalAnswer }
+                            }
                         }
                     }
                 }
@@ -139,8 +141,7 @@ fun saveHtmlReplay(
             script {
                 unsafe {
                     raw("""
-                    const messages = document.querySelectorAll('.message.reasoning');
-                    const finalAnswers = document.querySelectorAll('.final-answer');
+                    const allMessages = document.querySelectorAll('.message:not(.system)');
                     let current = 0;
                     let attemptCount = 0;
                     
@@ -159,16 +160,20 @@ fun saveHtmlReplay(
                         });
                     }
                     
-                    function showFinalAnswer(idx) {
-                        const finalAnswer = document.querySelector('[data-guess-index="'+idx+'"]');
-                        if (finalAnswer) {
-                            finalAnswer.classList.remove('hidden');
+                    function showGuessMessage(attemptIndex) {
+                        const guessMessage = document.querySelector('[data-index="guess-'+attemptIndex+'"]');
+                        if (guessMessage) {
+                            guessMessage.classList.remove('hidden');
+                            
+                            // Auto-scroll chat to newest message
+                            const container = document.querySelector('.right');
+                            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
                         }
                     }
                     
                     function showNext() {
-                        if (current >= messages.length) return;
-                        const el = messages[current];
+                        if (current >= allMessages.length) return;
+                        const el = allMessages[current];
                         const role = el.getAttribute('data-role');
                         el.classList.remove('hidden');
                         
@@ -176,20 +181,29 @@ fun saveHtmlReplay(
                         const container = document.querySelector('.right');
                         setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
                         
-                        const text = el.innerText;
-                        el.innerText = '';
+                        if (role === 'guess') {
+                            // Guess messages don't need typing animation, just show them
+                            current++;
+                            setTimeout(showNext, 800);
+                            return;
+                        }
+                        
+                        // For reasoning messages, get the content from the p tag
+                        const contentP = el.querySelector('p');
+                        const text = contentP.innerText;
+                        contentP.innerText = '';
                         let i = 0;
                         
                         function typeChar() {
                             if (i < text.length) {
-                                el.innerText += text.charAt(i);
+                                contentP.innerText += text.charAt(i);
                                 i++;
-                                setTimeout(typeChar, 0);
+                                setTimeout(typeChar, 20);
                             } else {
                                 if (role === 'reasoning') {
-                                    // Show board tiles and final answer for this attempt
+                                    // Show board tiles and guess message for this attempt
                                     revealRowsForAttempt(attemptCount);
-                                    showFinalAnswer(attemptCount);
+                                    setTimeout(() => showGuessMessage(attemptCount), 500);
                                     attemptCount++;
                                 }
                                 current++;
