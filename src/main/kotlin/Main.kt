@@ -133,10 +133,9 @@ fun main() {
 
     try {
         quordleDriver.initializeDriver()
+        var gameState = quordleDriver.parseGameState()
 
         while (true) {
-            val gameState = quordleDriver.parseGameState()
-
             // Print current state
             println("Current Game State:")
             println(gameState)
@@ -160,6 +159,14 @@ fun main() {
             println("Making a guess...")
             val nextGuess = llmGuesser.guessWord(gameState)
             quordleDriver.enterGuess(nextGuess)
+            val currAttempts = gameState.numAttempts()
+
+            gameState = quordleDriver.parseGameState()
+            if (gameState.numAttempts() == currAttempts) {
+                // the word was not accepted, remove the last 2 messages from LLM guesser
+                llmGuesser.allMessages.removeLastOrNull()
+                llmGuesser.allMessages.removeLastOrNull()
+            }
         }
     } finally {
         //Thread.sleep(60000) // lemme take a screenshot

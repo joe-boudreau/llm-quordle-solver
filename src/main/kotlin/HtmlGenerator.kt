@@ -166,10 +166,15 @@ fun saveHtmlReplay(
                         if (guessMessage) {
                             guessMessage.classList.remove('hidden');
                             
-                            // Auto-scroll chat to newest message
+                            // Auto-scroll to show the guess message
                             const container = document.querySelector('.right');
-                            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+                            guessMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
                         }
+                    }
+                    
+                    function autoScroll() {
+                        const container = document.querySelector('.right');
+                        container.scrollTop = container.scrollHeight;
                     }
                     
                     function showNext() {
@@ -178,9 +183,10 @@ fun saveHtmlReplay(
                         const role = el.getAttribute('data-role');
                         el.classList.remove('hidden');
                         
-                        // Auto-scroll chat to newest message
-                        const container = document.querySelector('.right');
-                        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+                        // Scroll to show the new message immediately
+                        setTimeout(() => {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        }, 100);
                         
                         if (role === 'guess') {
                             // Guess messages don't need typing animation, just show them
@@ -194,18 +200,28 @@ fun saveHtmlReplay(
                         const text = contentP.innerText;
                         contentP.innerText = '';
                         let i = 0;
+                        let lastScrollTime = Date.now();
                         
                         function typeChar() {
                             if (i < text.length) {
                                 contentP.innerText += text.charAt(i);
                                 i++;
-                                setTimeout(typeChar, 20);
+                                
+                                // Scroll periodically during typing to keep content visible
+                                const now = Date.now();
+                                if (now - lastScrollTime > 200) {
+                                    autoScroll();
+                                    lastScrollTime = now;
+                                }
+                                
+                                setTimeout(typeChar, 0);
                             } else {
                                 if (role === 'reasoning') {
+                                    // Get the attempt index directly from the message attribute
+                                    const attemptIndex = parseInt(el.getAttribute('data-attempt-index'));
                                     // Show board tiles and guess message for this attempt
-                                    revealRowsForAttempt(attemptCount);
-                                    setTimeout(() => showGuessMessage(attemptCount), 500);
-                                    attemptCount++;
+                                    showGuessMessage(attemptIndex);
+                                    setTimeout(() => revealRowsForAttempt(attemptIndex), 500);
                                 }
                                 current++;
                                 setTimeout(showNext, 1000);
