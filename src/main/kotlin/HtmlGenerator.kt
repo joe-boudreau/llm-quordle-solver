@@ -45,20 +45,20 @@ fun saveHtmlReplay(
             style {
                 unsafe {
                     raw("""
-                body { margin: 0; padding: 0; font-family: sans-serif; }
+                body { margin: 0; padding: 0; font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif; }
                 .container { display: flex; height: 100vh; }
-                    .left { flex: 1; padding: 10px; background: #f0f0f0; }
+                    .left { flex: 1; padding: 20px; background: #f0f0f0; overflow: auto; }
                     .right { flex: 1; padding: 10px; background: #ffffff; position: relative; display: flex; flex-direction: column; overflow: auto; }
-                    .boards-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 20px; height: calc(100% - 20px); }
-                    .board-container { background: #ffffff; padding: 10px; border-radius: 4px; display: flex; flex-direction: column; height: 100%; }
-                    .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; height: 100%; }
-                    .board-row { flex: 1; display: flex; }
-                    .tile { flex: 1; aspect-ratio: 1; min-width: 0; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #000; }
-                    .tile.CORRECT { background: #6aaa64; }
-                    .tile.PRESENT { background: #c9b458; }
-                    .tile.ABSENT { background: #787c7e; }
-                    .tile.EMPTY { background: #ffffff; border: 1px solid #ccc; }
-                    .tile.placeholder { background: #ddd; }
+                    .boards-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; width: 320px; margin-bottom: 20px; }
+                    .board-container { background: #ffffff; border: 1px solid #d3d6da; border-radius: 4px; padding: 8px; }
+                    .board-row { display: flex; gap: 4px; margin-bottom: 4px; }
+                    .board-row:last-child { margin-bottom: 0; }
+                    .tile { width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; text-transform: uppercase; border: 2px solid #d3d6da; }
+                    .tile.CORRECT { background-color: #6aaa64; border-color: #6aaa64; color: white; }
+                    .tile.PRESENT { background-color: #c9b458; border-color: #c9b458; color: white; }
+                    .tile.ABSENT { background-color: #787c7e; border-color: #787c7e; color: white; }
+                    .tile.EMPTY { background-color: #ffffff; border-color: #d3d6da; color: #000000; }
+                    .tile.placeholder { background-color: #ffffff; border-color: #d3d6da; color: transparent; }
                     .message { margin: 5px; padding: 8px 12px; border-radius: 8px; white-space: pre-wrap; max-width: 70%; }
                     .message[data-role="user"] { align-self: flex-end; background-color: #e1ffc7; }
                     .message[data-role="assistant"] { align-self: flex-start; background-color: #ffffff; border: 1px solid #ddd; }
@@ -85,10 +85,8 @@ fun saveHtmlReplay(
                                             attributes["data-word"] = attempts[ai].word
                                             attributes["data-feedback"] = attempts[ai].feedback.joinToString(",") { it.name }
                                         }
-                                        div(classes = "board") {
-                                            // initial placeholders
-                                            repeat(5) { span(classes = "tile placeholder EMPTY") {} }
-                                        }
+                                        // tiles should be direct children of board-row
+                                        repeat(5) { span(classes = "tile placeholder EMPTY") {} }
                                     }
                                 }
                             }
