@@ -140,7 +140,16 @@ class LLMQuordleGuesser {
         throw IllegalArgumentException("LLM did not return a valid 5-letter word after 3 attempts.")
     }
 
-    suspend fun chatCompletion(): ChatMessage {
+    fun removeLastNMessages(n: Int) {
+        if (n <= 0 || n > allMessages.size) {
+            throw IllegalArgumentException("Invalid number of messages to remove: $n")
+        }
+        repeat(n) {
+            allMessages.removeLast()
+        }
+    }
+
+    private suspend fun chatCompletion(): ChatMessage {
         val chatCompletionRequest = ChatCompletionRequest(
             model = modelId,
             messages = allMessages,

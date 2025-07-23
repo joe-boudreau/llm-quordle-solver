@@ -103,7 +103,7 @@ fun saveHtmlReplay(
                 }
                 div(classes = "right") {
                     // Show system message first
-                    systemMessage?.let { msg ->
+                    systemMessage.let { msg ->
                         div(classes = "message system") {
                             attributes["data-index"] = "system"
                             attributes["data-role"] = "system"
@@ -135,8 +135,6 @@ fun saveHtmlReplay(
                             }
                         }
                     }
-                    //val idxOffset = llmGuessResponses.size
-
                     // Final messages
                     finalMessages.forEach { msg ->
                         val role = msg.role.role
