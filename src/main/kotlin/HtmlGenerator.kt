@@ -139,11 +139,12 @@ fun saveHtmlReplay(
 
                     // Final messages
                     finalMessages.forEach { msg ->
-                        val role = msg.role.toString()
+                        val role = msg.role.role
                         div(classes = "message $role hidden") {
                             attributes["data-role"] = role
                             small(classes = "role-indicator") { i { +role } }
-                            p { +msg.content.orEmpty() }
+                            // will be html content
+                            unsafe{ + msg.content.orEmpty() }
                         }
                     }
                 }
@@ -233,7 +234,7 @@ fun saveHtmlReplay(
                                     setTimeout(() => revealRowsForAttempt(attemptIndex), 500);
                                 }
                                 current++;
-                                setTimeout(showNext, 2000);
+                                setTimeout(showNext, 1500);
                             }
                         }
                         typeChar();

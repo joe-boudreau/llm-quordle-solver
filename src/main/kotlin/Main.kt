@@ -155,7 +155,7 @@ fun main() {
                 finalMessages.add(
                     ChatMessage(
                         role = ChatRole.User,
-                        content = "Congratulations, you solved all the puzzles today! Your prize is to create some art."
+                        content = "<p>Congratulations, you solved all the puzzles today! Your prize is to create some art.</p>"
                     )
                 )
 
@@ -164,9 +164,11 @@ fun main() {
                 finalMessages.add(
                     ChatMessage(
                         role = ChatRole.User,
-                        content = imagePrompt,
+                        content = "<p>$imagePrompt</p>",
                     )
                 )
+
+                println("Generated image URL: $imageUrl")
 
                 finalMessages.add(
                     ChatMessage(
