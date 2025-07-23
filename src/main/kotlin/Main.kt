@@ -2,6 +2,7 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.net.URI
 
 fun main() {
     println("Starting Quordle...")
@@ -33,11 +34,15 @@ fun main() {
                 finalMessages.add(
                     ChatMessage(
                         role = ChatRole.User,
-                        content = "<p>Congratulations, you solved all the puzzles today! Your prize is to create some art.</p>"
+                        content = "<p>Congratulations, you solved the Quordle today! Your prize is to create some art.</p>"
                     )
                 )
 
                 val (imagePrompt, imageUrl) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
+
+                // save image to disk
+                val imageFile = File("generated_image.png")
+                downloadImage(imageUrl, imageFile)
 
                 finalMessages.add(
                     ChatMessage(
@@ -46,16 +51,14 @@ fun main() {
                     )
                 )
 
-                println("Generated image URL: $imageUrl")
-
                 finalMessages.add(
                     ChatMessage(
                         role = ChatRole.Assistant,
-                        content = "<img src=\"$imageUrl\" alt=\"Generated Image\" style=\"max-width: 100%; height: auto;\" />",
+                        content = "<img src=generated_image.png alt=\"Generated Image\" style=\"max-width: 100%; height: auto;\" />",
                     )
                 )
 
-                saveGameState(gameState, llmGuesser.allMessages)
+                saveGameState(gameState, systemMessage, llmGuessResponses, finalMessages)
 
                 saveHtmlReplay(
                     gameState,
@@ -69,7 +72,7 @@ fun main() {
             }
 
             if (gameState.isFailed()) {
-                saveGameState(gameState, llmGuesser.allMessages)
+                //saveGameState(gameState, llmGuesser.allMessages)
                 //saveHtmlReplay(gameState, llmGuesser.allMessages)
                 updateLLMGuesserStats(gameState, llmGuesser.modelId.toString())
                 println("You lose. Game over!")
@@ -108,4 +111,21 @@ fun updateLLMGuesserStats(gameState: GameState, modelId: String) {
     // Save updated stats back to file
     statsFile.writeText(kotlinx.serialization.json.Json.encodeToString(stats))
     println("LLM Guesser stats updated for model $modelId")
+}
+
+fun downloadImage(imageUrl: String, destinationFile: File) {
+    try {
+        val uri = URI.create(imageUrl)
+        val connection = uri.toURL().openConnection()
+        connection.connect()
+        connection.getInputStream().use { input ->
+            destinationFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        println("Image downloaded successfully to ${destinationFile.absolutePath}")
+    } catch (e: Exception) {
+        println("Failed to download image: ${e.message}")
+        e.printStackTrace()
+    }
 }

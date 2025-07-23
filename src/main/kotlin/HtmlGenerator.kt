@@ -1,5 +1,4 @@
 import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
 import kotlinx.html.i
 import kotlinx.html.small
 import kotlinx.html.body
@@ -14,24 +13,37 @@ import kotlinx.html.stream.createHTML
 import kotlinx.html.style
 import kotlinx.html.title
 import kotlinx.html.unsafe
-import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.collections.set
 
 fun main() {
-    val (gameState, allMessages) = loadGameState()
-    regenerateHtmlReplay(gameState, allMessages)
+    val gameReplayData = loadGameState()
+    regenerateHtmlReplay(
+        gameState = gameReplayData.gameState,
+        systemMessage = gameReplayData.systemMessage,
+        llmGuessResponses = gameReplayData.llmGuessResponses,
+        finalMessages = gameReplayData.finalMessages
+    )
 }
+
+private const val REPLAY_HTML_FILENAME = "replay.html"
 
 fun regenerateHtmlReplay(
     gameState: GameState,
-    allMessages: MutableList<ChatMessage>
+    systemMessage: ChatMessage,
+    llmGuessResponses: List<QuordleGuessResponse>,
+    finalMessages: List<ChatMessage>,
 ) {
     // Clear existing replay file
-    File("replay.html").writeText("")
+    File(REPLAY_HTML_FILENAME).writeText("")
 
     // Save the HTML replay
-    //saveHtmlReplay(gameState, allMessages)
+    saveHtmlReplay(
+        gameState = gameState,
+        systemMessage = systemMessage,
+        llmGuessResponses = llmGuessResponses,
+        finalMessages = finalMessages
+    )
 }
 
 fun saveHtmlReplay(
@@ -247,6 +259,6 @@ fun saveHtmlReplay(
     }
 
     // Write to static path
-    File("replay.html").writeText(htmlContent)
+    File(REPLAY_HTML_FILENAME).writeText(htmlContent)
     println("Replay saved to replay.html")
 }

@@ -153,7 +153,7 @@ class LLMQuordleGuesser {
         val chatCompletionRequest = ChatCompletionRequest(
             model = modelId,
             messages = allMessages,
-            reasoningEffort = Effort("low"),
+            reasoningEffort = Effort("medium"),
             responseFormat = jsonSchema(responseSchema)
         )
 
