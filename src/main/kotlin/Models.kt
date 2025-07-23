@@ -15,6 +15,13 @@ data class GameState(
     fun isFailed() = numAttempts() >= 9 && !isSolved()
 
     fun numAttempts() = boardStates.maxOf {it.attempts.size}
+
+    fun usedLettersAfterAttempt(attemptIndex: Int): Set<Char> {
+        return boardStates[0].attempts
+            .take(attemptIndex + 1)
+            .flatMap { it.word.toCharArray().toList() }
+            .toSet()
+    }
 }
 
 @Serializable

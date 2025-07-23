@@ -55,7 +55,7 @@ fun saveHtmlReplay(
                 body { margin: 0; padding: 0; font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif; }
                 .container { display: flex; height: 100vh; }
                     .left { flex: 1; padding: 20px; background: #f0f0f0; overflow: auto; }
-                    .right { flex: 1; padding: 10px; background: #ffffff; position: relative; display: flex; flex-direction: column; overflow: auto; }
+                    .right { flex: 1; padding: 10px; background: #ffffff; position: relative; display: flex; flex-direction: column; overflow: auto; margin: 10 10 30 10px;}
                     .boards-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; width: 320px; margin-bottom: 20px; }
                     .board-container { background: #ffffff; border: 1px solid #d3d6da; border-radius: 4px; padding: 8px; }
                     .board-row { display: flex; gap: 4px; margin-bottom: 4px; }
@@ -69,7 +69,7 @@ fun saveHtmlReplay(
                     .message { margin: 5px; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
                     .message p { margin: 0; padding: 0; white-space: pre-wrap; line-height: 1.4; }
                     .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; font-style: italic; }
-                    .message.reasoning { align-self: flex-start; background-color: #f5f5f5; border: 1px solid #ddd; }
+                    .message.reasoning { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .message.guess { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .guess-word { font-weight: bold; text-transform: uppercase; }
                     .hidden { display: none; }
@@ -214,7 +214,7 @@ fun saveHtmlReplay(
                                     lastScrollTime = now;
                                 }
                                 
-                                setTimeout(typeChar, 0);
+                                setTimeout(typeChar, 5);
                             } else {
                                 if (role === 'reasoning') {
                                     // Get the attempt index directly from the message attribute
@@ -224,7 +224,7 @@ fun saveHtmlReplay(
                                     setTimeout(() => revealRowsForAttempt(attemptIndex), 500);
                                 }
                                 current++;
-                                setTimeout(showNext, 1000);
+                                setTimeout(showNext, 2000);
                             }
                         }
                         typeChar();

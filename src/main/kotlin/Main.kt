@@ -1,7 +1,3 @@
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
-import kotlinx.html.*
-import kotlinx.html.stream.createHTML
 import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
