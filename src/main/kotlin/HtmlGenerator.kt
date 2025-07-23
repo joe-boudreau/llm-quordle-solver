@@ -31,20 +31,16 @@ fun regenerateHtmlReplay(
     File("replay.html").writeText("")
 
     // Save the HTML replay
-    saveHtmlReplay(gameState, allMessages)
+    //saveHtmlReplay(gameState, allMessages)
 }
 
 fun saveHtmlReplay(
     gameState: GameState,
-    allMessages: MutableList<ChatMessage>
+    systemMessage: ChatMessage,
+    llmGuessResponses: List<QuordleGuessResponse>,
+    finalMessages: List<ChatMessage>,
 ) {
-    val systemMessage = allMessages.firstOrNull { it.role == ChatRole.System }
 
-    val llmGuessResponses = allMessages
-        .filter { it.role == ChatRole.Assistant }
-        .map {Json.decodeFromString<QuordleGuessResponse>(it.content?.trim() ?: "") }
-
-            // Generate HTML replay using kotlinx.html
     val htmlContent = createHTML().html {
         head {
             meta(charset = "utf-8")
@@ -69,6 +65,8 @@ fun saveHtmlReplay(
                     .message { margin: 5px; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
                     .message p { margin: 0; padding: 0; white-space: pre-wrap; line-height: 1.4; }
                     .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; font-style: italic; }
+                    .message.user { align-self: flex-end; background-color: #fce4ec; border: 1px solid #f48fb1; }
+                    .message.assistant { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .message.reasoning { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .message.guess { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .guess-word { font-weight: bold; text-transform: uppercase; }
@@ -114,7 +112,7 @@ fun saveHtmlReplay(
                         }
                     }
 
-                    // Show reasoning and guess messages in pairs
+                    // Show reasoning and guess messages next
                     llmGuessResponses.forEachIndexed { index, response ->
                         // Reasoning message
                         div(classes = "message reasoning hidden") {
@@ -135,6 +133,17 @@ fun saveHtmlReplay(
                                 +"Guess: "
                                 span(classes = "guess-word") { +response.finalAnswer }
                             }
+                        }
+                    }
+                    //val idxOffset = llmGuessResponses.size
+
+                    // Final messages
+                    finalMessages.forEach { msg ->
+                        val role = msg.role.toString()
+                        div(classes = "message $role hidden") {
+                            attributes["data-role"] = role
+                            small(classes = "role-indicator") { i { +role } }
+                            p { +msg.content.orEmpty() }
                         }
                     }
                 }

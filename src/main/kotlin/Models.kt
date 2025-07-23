@@ -22,6 +22,10 @@ data class GameState(
             .flatMap { it.word.toCharArray().toList() }
             .toSet()
     }
+
+    fun getFinalWords(): List<String> {
+        return boardStates.map { it.attempts.lastOrNull()?.word ?: "" }
+    }
 }
 
 @Serializable

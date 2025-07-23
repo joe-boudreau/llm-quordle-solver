@@ -103,7 +103,7 @@ class LLMQuordleGuesser {
         logging = LoggingConfig(logLevel = LogLevel.Headers)
     )
 
-    val modelId = ModelId(System.getenv("OPENAI_MODEL_ID"))
+    val modelId = ModelId(System.getenv("OPENAI_CHAT_MODEL_ID"))
 
     fun guessWord(gameState: GameState): String {
         val prompt = userPromptTemplate.replace("{gameState}", gameState.toString())
