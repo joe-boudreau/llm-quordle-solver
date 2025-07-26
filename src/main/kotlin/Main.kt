@@ -41,7 +41,8 @@ fun main() {
                 val (imagePrompt, imageUrl) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
 
                 // save image to disk
-                val imageFile = File("generated_image.png")
+                val imageFilename = "generated_image.png"
+                val imageFile = File(OUTPUT_FILEPATH + imageFilename)
                 downloadImage(imageUrl, imageFile)
 
                 finalMessages.add(
@@ -54,7 +55,7 @@ fun main() {
                 finalMessages.add(
                     ChatMessage(
                         role = ChatRole.Assistant,
-                        content = "<img src=generated_image.png alt=\"Generated Image\" style=\"max-width: 100%; height: auto;\" />",
+                        content = "<img src=$imageFilename alt=\"Generated Image\" style=\"max-width: 100%; height: auto;\" />",
                     )
                 )
 

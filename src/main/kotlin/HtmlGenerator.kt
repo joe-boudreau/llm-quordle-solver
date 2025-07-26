@@ -26,7 +26,8 @@ fun main() {
     )
 }
 
-private const val REPLAY_HTML_FILENAME = "replay.html"
+val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
+private val REPLAY_HTML_FILENAME = OUTPUT_FILEPATH + "daily-quordle-solver.html"
 
 fun regenerateHtmlReplay(
     gameState: GameState,
