@@ -1,6 +1,5 @@
 import org.openqa.selenium.By
 import org.openqa.selenium.Keys
-import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
@@ -9,7 +8,7 @@ import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
 
 class QuordleWebDriver {
-    private lateinit var driver: WebDriver
+    private lateinit var driver: ChromeDriver
 
     /**
      * List of 4 game boards, each containing a list of 9 rows
@@ -41,25 +40,34 @@ class QuordleWebDriver {
             driver = ChromeDriver(options)
             println("WebDriver initialized.")
 
-            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10))
-            println("Set page load timeout to 10 seconds.")
+            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30))
+            println("Set page load timeout to 30 seconds.")
             println("Attempting to navigate to Quordle page...")
             try {
                 driver.get("https://www.merriam-webster.com/games/quordle")
-                println("Navigation command sent.")
-            } catch (e: org.openqa.selenium.TimeoutException) {
+                println("Request sent")
+            } catch (_: org.openqa.selenium.TimeoutException) {
                 // Continue even if we get a timeout - the page might be loaded enough
                 println("Page load timed out, but continuing anyway...")
             }
 
-            WebDriverWait(driver, Duration.ofSeconds(5))
-                .until { it.findElements(By.cssSelector("div[aria-label='Game Boards']")).isNotEmpty() }
+            val wait = WebDriverWait(driver, Duration.ofSeconds(20))
+
+            wait.until { it.findElements(By.cssSelector("div[aria-label='Game Boards']")).isNotEmpty() }
             println("Game boards loaded.")
 
-            val board1 = driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 1'] > div[aria-label='Game Board 1"))
-            val board2 = driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 1'] > div[aria-label='Game Board 2"))
-            val board3 = driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 2'] > div[aria-label='Game Board 3"))
-            val board4 = driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 2'] > div[aria-label='Game Board 4"))
+            val board1 = wait.until {
+                driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 1'] > div[aria-label='Game Board 1']"))
+            }
+            val board2 = wait.until {
+                driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 1'] > div[aria-label='Game Board 2']"))
+            }
+            val board3 = wait.until {
+                driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 2'] > div[aria-label='Game Board 3']"))
+            }
+            val board4 = wait.until {
+                driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 2'] > div[aria-label='Game Board 4']"))
+            }
             val gameBoards = listOf(board1, board2, board3, board4)
 
             boardRowTiles = gameBoards.map { board ->
