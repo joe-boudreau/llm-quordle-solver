@@ -26,6 +26,8 @@ data class GameState(
     fun getFinalWords(): List<String> {
         return boardStates.map { it.attempts.lastOrNull()?.word ?: "" }
     }
+
+    fun isInProgress() = !isSolved() && !isFailed()
 }
 
 @Serializable

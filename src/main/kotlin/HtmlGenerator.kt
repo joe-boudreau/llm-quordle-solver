@@ -18,40 +18,30 @@ import kotlin.collections.set
 
 fun main() {
     val gameReplayData = loadGameState()
-    regenerateHtmlReplay(
+    val guesserStats = loadGuesserStats()
+
+    // Clear existing replay file
+    File(REPLAY_HTML_FILENAME).writeText("")
+
+    // Save the HTML replay
+    saveHtmlReplay(
         gameState = gameReplayData.gameState,
         systemMessage = gameReplayData.systemMessage,
-        llmGuessResponses = gameReplayData.llmGuessResponses,
-        finalMessages = gameReplayData.finalMessages
+        guessChat = gameReplayData.guessChat,
+        finalMessages = gameReplayData.finalMessages,
+        guesserStats = guesserStats
     )
 }
 
 val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 private val REPLAY_HTML_FILENAME = OUTPUT_FILEPATH + "daily-quordle-solver.html"
 
-fun regenerateHtmlReplay(
-    gameState: GameState,
-    systemMessage: ChatMessage,
-    llmGuessResponses: List<QuordleGuessResponse>,
-    finalMessages: List<ChatMessage>,
-) {
-    // Clear existing replay file
-    File(REPLAY_HTML_FILENAME).writeText("")
-
-    // Save the HTML replay
-    saveHtmlReplay(
-        gameState = gameState,
-        systemMessage = systemMessage,
-        llmGuessResponses = llmGuessResponses,
-        finalMessages = finalMessages
-    )
-}
-
 fun saveHtmlReplay(
     gameState: GameState,
     systemMessage: ChatMessage,
-    llmGuessResponses: List<QuordleGuessResponse>,
+    guessChat: List<Pair<ChatMessage, QuordleGuessResponse>>,
     finalMessages: List<ChatMessage>,
+    guesserStats: GuesserStats,
 ) {
 
     val htmlContent = createHTML().html {

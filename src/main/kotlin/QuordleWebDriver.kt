@@ -105,6 +105,29 @@ class QuordleWebDriver {
         return Attempt(word, feedback)
     }
 
+    fun getWordAnswers(): List<String> {
+        // Find all spans with aria-labels that contain answer information
+        val answerSpans = driver.findElements(By.cssSelector("span[aria-label*='Answer is']"))
+
+        // Extract words from aria-labels and sort by game board number
+        val answers = answerSpans.mapNotNull { span ->
+            val ariaLabel = span.getAttribute("aria-label") ?: return@mapNotNull null
+
+            // Parse aria-label like "Answer is ACTOR for game board 1. Unsolved."
+            val regex = Regex("Answer is (\\w+) for game board (\\d+)")
+            val matchResult = regex.find(ariaLabel)
+
+            if (matchResult != null) {
+                val word = matchResult.groupValues[1]
+                val boardNumber = matchResult.groupValues[2].toInt()
+                Pair(boardNumber, word)
+            } else null
+        }.sortedBy { it.first }.map { it.second }
+
+        assert(answers.size == 4) { "Expected exactly 4 answers, but found ${answers.size}" }
+        return answers
+    }
+
 
     fun enterGuess(word: String) {
         // Create an Actions instance
