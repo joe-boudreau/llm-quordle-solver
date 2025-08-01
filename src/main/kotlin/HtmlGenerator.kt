@@ -26,6 +26,7 @@ fun main() {
     // Save the HTML replay
     saveHtmlReplay(
         gameState = gameReplayData.gameState,
+        wordAnswers = gameReplayData.wordAnswers,
         systemMessage = gameReplayData.systemMessage,
         guessChat = gameReplayData.guessChat,
         finalMessages = gameReplayData.finalMessages,
@@ -37,6 +38,7 @@ private val REPLAY_HTML_FILENAME = OUTPUT_FILEPATH + "daily-quordle-solver.html"
 
 fun saveHtmlReplay(
     gameState: GameState,
+    wordAnswers: List<String>,
     systemMessage: ChatMessage,
     guessChat: List<Pair<ChatMessage, QuordleGuessResponse>>,
     finalMessages: List<ChatMessage>,
@@ -68,12 +70,21 @@ fun saveHtmlReplay(
                     .message p { margin: 0; padding: 0; white-space: pre-wrap; line-height: 1.4; }
                     .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; font-style: italic; }
                     .message.user { align-self: flex-end; background-color: #fce4ec; border: 1px solid #f48fb1; }
+                    .message.user.collapsed { cursor: pointer; min-height: 20px; padding: 8px 16px; }
+                    .message.user.collapsed .message-content { display: none; }
+                    .message.user.collapsed .role-indicator::after { content: " (click to expand)"; color: #999; }
+                    .message.user.expanded .message-content { display: block; }
                     .message.assistant { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .message.reasoning { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .message.guess { align-self: flex-start; background-color: #e8f5e8; border: 1px solid #6aaa64; }
                     .guess-word { font-weight: bold; text-transform: uppercase; }
                     .hidden { display: none; }
                     .role-indicator { display: block; font-style: italic; font-size: 0.75em; margin-bottom: 4px; color: #666; }
+                    .results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 320px; margin-top: 20px; }
+                    .results-grid.hidden { display: none; }
+                    .result-word { padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 18px; text-transform: uppercase; color: white; border: 2px solid; }
+                    .result-word.solved { background-color: #6aaa64; border-color: #6aaa64; }
+                    .result-word.unsolved { background-color: #d73a49; border-color: #d73a49; }
                 """
                     )
                 }
@@ -102,6 +113,17 @@ fun saveHtmlReplay(
                             }
                         }
                     }
+
+                    // Results grid (hidden initially, shown after last guess)
+                    div(classes = "results-grid hidden") {
+                        attributes["id"] = "results-grid"
+                        wordAnswers.forEachIndexed { index, word ->
+                            val isSolved = gameState.boardStates[index].isSolved()
+                            div(classes = "result-word ${if (isSolved) "solved" else "unsolved"}") {
+                                +word
+                            }
+                        }
+                    }
                 }
                 div(classes = "right") {
                     // Show system message first
@@ -115,7 +137,18 @@ fun saveHtmlReplay(
                     }
 
                     // Show reasoning and guess messages next
-                    llmGuessResponses.forEachIndexed { index, response ->
+                    guessChat.forEachIndexed { index, (user, response) ->
+                        // User message (collapsed by default)
+                        div(classes = "message user collapsed hidden") {
+                            attributes["data-index"] = "user-$index"
+                            attributes["data-role"] = "user"
+                            attributes["data-attempt-index"] = index.toString()
+                            small(classes = "role-indicator") { i { +"User" } }
+                            div(classes = "message-content") {
+                                p { +user.content.orEmpty() }
+                            }
+                        }
+
                         // Reasoning message
                         div(classes = "message reasoning hidden") {
                             attributes["data-index"] = "reasoning-$index"
@@ -156,6 +189,20 @@ fun saveHtmlReplay(
                     let current = 0;
                     let attemptCount = 0;
                     
+                    // Add click handlers for user messages
+                    function setupUserMessageHandlers() {
+                        document.querySelectorAll('.message.user.collapsed').forEach(userMsg => {
+                            userMsg.addEventListener('click', function() {
+                                this.classList.remove('collapsed');
+                                this.classList.add('expanded');
+                                
+                                // Scroll to reveal the expanded content
+                                const container = document.querySelector('.right');
+                                this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            });
+                        });
+                    }
+                    
                     function revealRowsForAttempt(idx) {
                         document.querySelectorAll('[data-attempt-index="'+idx+'"]').forEach(row => {
                             const word = row.getAttribute('data-word') || '';
@@ -187,11 +234,34 @@ fun saveHtmlReplay(
                         container.scrollTop = container.scrollHeight;
                     }
                     
+                    function showResultsGrid() {
+                        const resultsGrid = document.getElementById('results-grid');
+                        if (resultsGrid) {
+                            resultsGrid.classList.remove('hidden');
+                        }
+                    }
+                    
                     function showNext() {
-                        if (current >= allMessages.length) return;
+                        if (current >= allMessages.length) {
+                            // All messages have been shown, now show the results grid
+                            setTimeout(showResultsGrid, 1000);
+                            return;
+                        }
                         const el = allMessages[current];
                         const role = el.getAttribute('data-role');
                         el.classList.remove('hidden');
+                        
+                        // Handle User messages differently
+                        if (role === 'user') {
+                            // User messages appear collapsed and clickable immediately
+                            setupUserMessageHandlers();
+                            setTimeout(() => {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                            }, 100);
+                            current++;
+                            setTimeout(showNext, 600);
+                            return;
+                        }
                         
                         // Scroll to show the new message immediately
                         setTimeout(() => {
@@ -250,5 +320,6 @@ fun saveHtmlReplay(
 
     // Write to static path
     File(REPLAY_HTML_FILENAME).writeText(htmlContent)
+    //set write permissions
     println("Replay saved to replay.html")
 }

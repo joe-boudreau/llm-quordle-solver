@@ -104,6 +104,9 @@ class LLMQuordleGuesser {
     )
 
     private val modelId = ModelId(System.getenv("OPENAI_CHAT_MODEL_ID"))
+    private val reasoningEffort: Effort? = System.getenv("OPENAI_REASONING_EFFORT")?.let {
+        Effort(it)
+    }
 
     fun guessWord(gameState: GameState): String {
         val prompt = userPromptTemplate.replace("{gameState}", gameState.toString())
@@ -153,7 +156,7 @@ class LLMQuordleGuesser {
         val chatCompletionRequest = ChatCompletionRequest(
             model = modelId,
             messages = allMessages,
-            reasoningEffort = Effort("medium"),
+            reasoningEffort = reasoningEffort,
             responseFormat = jsonSchema(responseSchema)
         )
 

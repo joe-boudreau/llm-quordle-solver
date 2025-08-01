@@ -9,6 +9,11 @@ const val IMAGE_FILENAME = "generated_quordle_art.png"
 
 fun main() {
     println("Starting QuordleWebDriver...")
+    // create the output directory if it doesn't exist
+    val outputDir = File(OUTPUT_FILEPATH)
+    if (!outputDir.exists()) {
+        outputDir.mkdirs()
+    }
     val quordleDriver = QuordleWebDriver()
 
     val llmGuesser = LLMQuordleGuesser()
@@ -70,6 +75,7 @@ fun main() {
 
         saveHtmlReplay(
             gameState,
+            wordAnswers,
             systemMessage,
             guessChat,
             finalMessages,
@@ -110,6 +116,7 @@ fun downloadImage(imageUrl: String?, imageFilename: String) {
 
     val imageFilepath = OUTPUT_FILEPATH + imageFilename
     val destinationFile = File(imageFilepath)
+
     try {
         val uri = URI.create(imageUrl)
         val connection = uri.toURL().openConnection()
