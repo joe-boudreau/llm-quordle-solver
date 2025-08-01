@@ -11,7 +11,7 @@ data class GameReplayData(
     val finalMessages: List<ChatMessage>
 )
 
-private const val REPLAY_DATA_FILENAME = "game_replay_data.json"
+private val REPLAY_DATA_FILENAME = OUTPUT_FILEPATH + "game_replay_data.json"
 
 fun saveGameState(
     gameState: GameState,

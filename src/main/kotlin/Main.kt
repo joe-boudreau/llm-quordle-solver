@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.net.URI
 
+val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 const val IMAGE_FILENAME = "generated_quordle_art.png"
 
 fun main() {
@@ -12,6 +13,7 @@ fun main() {
 
     val llmGuesser = LLMQuordleGuesser()
     val llmImageGenerator = LLMImageGenerator()
+    val llmGuesserStatsRepository = GuesserStatsRepository()
 
     try {
         quordleDriver.initializeDriver()
@@ -64,7 +66,7 @@ fun main() {
             guessChat,
             finalMessages
         )
-        val guesserStats = updateLLMGuesserStats(gameState, llmGuesser.modelId.toString())
+        val guesserStats = llmGuesserStatsRepository.updateStats(gameState)
 
         saveHtmlReplay(
             gameState,
@@ -101,29 +103,13 @@ fun getGameFailedFinalMessages() = listOf(
     ),
 )
 
-fun updateLLMGuesserStats(gameState: GameState, modelId: String) {
-    // Update LLM guesser stats based on the game state
-    val statsFile = File("llm_guesser_stats.json")
-    val stats = if (statsFile.exists()) {
-        kotlinx.serialization.json.Json.decodeFromString<MutableMap<String, Int>>(statsFile.readText())
-    } else {
-        mutableMapOf()
-    }
-
-    // Increment the count for this model ID
-    stats[modelId] = stats.getOrDefault(modelId, 0) + 1
-
-    // Save updated stats back to file
-    statsFile.writeText(kotlinx.serialization.json.Json.encodeToString(stats))
-    println("LLM Guesser stats updated for model $modelId")
-}
-
 fun downloadImage(imageUrl: String?, imageFilename: String) {
     if (imageUrl.isNullOrEmpty()) {
         return
     }
 
-    val destinationFile = File(imageFilename)
+    val imageFilepath = OUTPUT_FILEPATH + imageFilename
+    val destinationFile = File(imageFilepath)
     try {
         val uri = URI.create(imageUrl)
         val connection = uri.toURL().openConnection()

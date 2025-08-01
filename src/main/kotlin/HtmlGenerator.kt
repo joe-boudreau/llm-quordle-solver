@@ -18,7 +18,7 @@ import kotlin.collections.set
 
 fun main() {
     val gameReplayData = loadGameState()
-    val guesserStats = loadGuesserStats()
+    val guesserStats = GuesserStatsRepository().loadStats()
 
     // Clear existing replay file
     File(REPLAY_HTML_FILENAME).writeText("")
@@ -33,7 +33,6 @@ fun main() {
     )
 }
 
-val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 private val REPLAY_HTML_FILENAME = OUTPUT_FILEPATH + "daily-quordle-solver.html"
 
 fun saveHtmlReplay(
