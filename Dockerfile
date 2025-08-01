@@ -1,0 +1,39 @@
+# Stage 1: Cache Gradle dependencies
+FROM gradle:latest AS cache
+RUN mkdir -p /home/gradle/cache_home
+ENV GRADLE_USER_HOME /home/gradle/cache_home
+COPY build.gradle.* gradle.properties /home/gradle/app/
+COPY gradle /home/gradle/app/gradle
+WORKDIR /home/gradle/app
+RUN gradle clean build -i --stacktrace
+
+# Stage 2: Build Application
+FROM gradle:latest AS build
+COPY --from=cache /home/gradle/cache_home /home/gradle/.gradle
+COPY . /usr/src/app/
+WORKDIR /usr/src/app
+COPY --chown=gradle:gradle . /home/gradle/src
+WORKDIR /home/gradle/src
+RUN gradle shadowJar --no-daemon
+
+# Stage 3: Create the Runtime Image
+FROM ghcr.io/browserless/chromium:latest AS runtime
+USER root
+# Install Java 22
+RUN apt-get update && \
+    apt-get install -y wget gnupg2 && \
+    wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add - && \
+    echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list && \
+    apt-get update && \
+    apt-get install -y temurin-22-jdk && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set JAVA_HOME and update PATH
+ENV JAVA_HOME=/usr/lib/jvm/temurin-22-jdk-amd64
+ENV PATH="$JAVA_HOME/bin:$PATH"
+
+# Copy the JAR file
+COPY --from=build /home/gradle/src/build/libs/*.jar /app/quordle-solver.jar
+
+ENTRYPOINT ["java","-jar","/app/quordle-solver.jar"]

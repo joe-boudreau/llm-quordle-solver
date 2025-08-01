@@ -4,7 +4,6 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.interactions.Actions
-import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
 
 class QuordleWebDriver {
@@ -45,7 +44,6 @@ class QuordleWebDriver {
                 .implicitlyWait(Duration.ofSeconds(30))
                 .scriptTimeout(Duration.ofSeconds(30))
 
-            println("Set page load timeout to 30 seconds.")
             println("Attempting to navigate to Quordle page...")
             try {
                 driver.get("https://www.merriam-webster.com/games/quordle")
