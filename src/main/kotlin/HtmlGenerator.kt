@@ -65,7 +65,7 @@ fun saveHtmlReplay(
                     .tile.placeholder { background-color: #ffffff; border-color: #d3d6da; color: transparent; }
                     .message { margin: 5px; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
                     .message p { margin: 0; padding: 0; white-space: pre-wrap; line-height: 1.4; }
-                    .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: center; }
+                    .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; }
                     .message.user { align-self: flex-end; background-color: #fce4ec; border: 1px solid #f48fb1; }
                     .message.user.collapsed { cursor: pointer; min-height: 20px; padding: 8px 16px; }
                     .message.user.collapsed .message-content { display: none; }
@@ -289,7 +289,13 @@ fun saveHtmlReplay(
                         }
                         
                         // For reasoning messages, get the content from the p tag
-                        const contentP = el.querySelector('p');
+                        const contentP = el.querySelector('> p');
+                        if (!contentP) {
+                            console.error('No content found for message:', el);
+                            current++;
+                            setTimeout(showNext, 800);
+                            return;
+                        }
                         const text = contentP.innerText;
                         contentP.innerText = '';
                         let i = 0;
