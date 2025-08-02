@@ -65,7 +65,7 @@ fun saveHtmlReplay(
                     .tile.placeholder { background-color: #ffffff; border-color: #d3d6da; color: transparent; }
                     .message { margin: 5px; padding: 12px 16px; border-radius: 8px; max-width: 80%; word-wrap: break-word; }
                     .message p { margin: 0; padding: 0; white-space: pre-wrap; line-height: 1.4; }
-                    .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: flex-start; font-style: italic; }
+                    .message.system { background-color: #e3f2fd; border: 1px solid #90caf9; align-self: center; }
                     .message.user { align-self: flex-end; background-color: #fce4ec; border: 1px solid #f48fb1; }
                     .message.user.collapsed { cursor: pointer; min-height: 20px; padding: 8px 16px; }
                     .message.user.collapsed .message-content { display: none; }
@@ -82,6 +82,7 @@ fun saveHtmlReplay(
                     .result-word { padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 18px; text-transform: uppercase; color: white; border: 2px solid; }
                     .result-word.solved { background-color: #6aaa64; border-color: #6aaa64; }
                     .result-word.unsolved { background-color: #d73a49; border-color: #d73a49; }
+                    .link { color: black; }
                     
                     /* Statistics Styles */
                     .stats-container { margin: 16px 0; padding: 16px; border: 1px solid #d3d6da; border-radius: 8px; background-color: #fafafa; font-style: normal; }
@@ -198,9 +199,8 @@ fun saveHtmlReplay(
             script {
                 unsafe {
                     raw("""
-                    const allMessages = document.querySelectorAll('.message)');
-                    let current = 1;
-                    let attemptCount = 0;
+                    const allMessages = document.querySelectorAll('.message');
+                    let current = 1; // Start from 1 to skip the system message
                     
                     // Add click handlers for user messages
                     function setupUserMessageHandlers() {

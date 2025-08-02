@@ -102,21 +102,25 @@ fun getGameSolvedFinalMessages(imagePrompt: String, imageFilename: String, guess
         role = ChatRole.Assistant,
         content = "<p>Here you go!</p><img src=$imageFilename alt=\"Generated Image\" style=\"max-width: 100%; height: auto;\" />",
     ),
-    ChatMessage(
-        role = ChatRole.System,
-        content = generateStatsHtml(guesserStats)
-    )
-)
+) + getFinalSystemMessages(guesserStats)
 
 fun getGameFailedFinalMessages(guesserStats: GuesserStats) = listOf(
     ChatMessage(
         role = ChatRole.User,
         content = "<p>Unfortunately, you failed to solve the Quordle today.</p>"
-    ),
+    )
+) + getFinalSystemMessages(guesserStats)
+
+private fun getFinalSystemMessages(guesserStats: GuesserStats) = listOf(
     ChatMessage(
         role = ChatRole.System,
         content = generateStatsHtml(guesserStats)
-    )
+    ),
+    ChatMessage(
+        role = ChatRole.System,
+        content = "<p><a class=\"link\" href=\"https://github.com/joe-boudreau/llm-quordle-solver\">Source Code</a></p>" +
+                "<p><a class=\"link\" href=\"/post/getting-an-llm-to-solve-the-daily-quordle\">How I Made This</a></p>"
+    ),
 )
 
 private fun generateStatsHtml(stats: GuesserStats): String {
@@ -125,7 +129,7 @@ private fun generateStatsHtml(stats: GuesserStats): String {
 
     // Generate distribution bars
     val maxAttempts = stats.attemptsDistributionForWins.values.maxOrNull() ?: 1
-    val distributionBars = (4..9).map { attempts ->
+    val distributionBars = (4..9).joinToString("") { attempts ->
         val count = stats.attemptsDistributionForWins[attempts] ?: 0
         val percentage = if (maxAttempts > 0) (count * 100.0 / maxAttempts) else 0.0
         """
@@ -137,7 +141,7 @@ private fun generateStatsHtml(stats: GuesserStats): String {
             <div class="stat-bar-count">$count</div>
         </div>
         """.trimIndent()
-    }.joinToString("")
+    }
 
     return """
     <div class="stats-container">
