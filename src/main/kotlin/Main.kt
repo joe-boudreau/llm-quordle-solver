@@ -23,7 +23,9 @@ fun main() {
     try {
         quordleDriver.initializeDriver()
 
-        var gameState = quordleDriver.parseGameState()
+        //var gameState = quordleDriver.parseGameState()
+        val gameReplayData = loadGameState()
+        var gameState = gameReplayData.gameState
 
         while (gameState.isInProgress()) {
 
@@ -56,12 +58,14 @@ fun main() {
 
         val finalMessages = mutableListOf<ChatMessage>()
 
+        val guesserStats = llmGuesserStatsRepository.updateStats(gameState)
+
         if (gameState.isSolved()) {
             val (imagePrompt, imageUrl) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
             downloadImage(imageUrl, IMAGE_FILENAME)
-            finalMessages.addAll(getGameSolvedFinalMessages(imagePrompt, IMAGE_FILENAME))
+            finalMessages.addAll(getGameSolvedFinalMessages(imagePrompt, IMAGE_FILENAME, guesserStats))
         } else {
-            finalMessages.addAll(getGameFailedFinalMessages())
+            finalMessages.addAll(getGameFailedFinalMessages(guesserStats))
         }
 
         saveGameState(
@@ -71,7 +75,6 @@ fun main() {
             guessChat,
             finalMessages
         )
-        val guesserStats = llmGuesserStatsRepository.updateStats(gameState)
 
         saveHtmlReplay(
             gameState,
@@ -79,7 +82,6 @@ fun main() {
             systemMessage,
             guessChat,
             finalMessages,
-            guesserStats
         )
 
     } finally {
@@ -87,7 +89,7 @@ fun main() {
     }
 }
 
-fun getGameSolvedFinalMessages(imagePrompt: String, imageFilename: String) = listOf(
+fun getGameSolvedFinalMessages(imagePrompt: String, imageFilename: String, guesserStats: GuesserStats) = listOf(
     ChatMessage(
         role = ChatRole.User,
         content = "<p>Congratulations, you solved the Quordle today! Your prize is to create some art.</p>"
@@ -99,15 +101,76 @@ fun getGameSolvedFinalMessages(imagePrompt: String, imageFilename: String) = lis
     ChatMessage(
         role = ChatRole.Assistant,
         content = "<p>Here you go!</p><img src=$imageFilename alt=\"Generated Image\" style=\"max-width: 100%; height: auto;\" />",
+    ),
+    ChatMessage(
+        role = ChatRole.System,
+        content = generateStatsHtml(guesserStats)
     )
 )
 
-fun getGameFailedFinalMessages() = listOf(
+fun getGameFailedFinalMessages(guesserStats: GuesserStats) = listOf(
     ChatMessage(
         role = ChatRole.User,
         content = "<p>Unfortunately, you failed to solve the Quordle today.</p>"
     ),
+    ChatMessage(
+        role = ChatRole.System,
+        content = generateStatsHtml(guesserStats)
+    )
 )
+
+private fun generateStatsHtml(stats: GuesserStats): String {
+    val totalGames = stats.winCount + stats.lossCount
+    val winPercentage = if (totalGames > 0) (stats.winCount * 100.0 / totalGames) else 0.0
+
+    // Generate distribution bars
+    val maxAttempts = stats.attemptsDistributionForWins.values.maxOrNull() ?: 1
+    val distributionBars = (4..9).map { attempts ->
+        val count = stats.attemptsDistributionForWins[attempts] ?: 0
+        val percentage = if (maxAttempts > 0) (count * 100.0 / maxAttempts) else 0.0
+        """
+        <div class="stat-bar-row">
+            <div class="stat-bar-label">$attempts</div>
+            <div class="stat-bar-container">
+                <div class="stat-bar-fill" style="width: ${percentage}%"></div>
+            </div>
+            <div class="stat-bar-count">$count</div>
+        </div>
+        """.trimIndent()
+    }.joinToString("")
+
+    return """
+    <div class="stats-container">
+        <h3 class="stats-title">📊 LLM Quordle Stats</h3>
+        
+        <div class="stats-overview">
+            <div class="stat-item">
+                <div class="stat-number">${stats.winCount}</div>
+                <div class="stat-label">Wins</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">${stats.lossCount}</div>
+                <div class="stat-label">Losses</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">${String.format("%.1f", winPercentage)}%</div>
+                <div class="stat-label">Win Rate</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">${stats.currentStreak}</div>
+                <div class="stat-label">Current Streak</div>
+            </div>
+        </div>
+        
+        <div class="stats-distribution">
+            <h4 class="distribution-title">Total Attempts (Wins Only)</h4>
+            <div class="stat-bars">
+                $distributionBars
+            </div>
+        </div>
+    </div>
+    """.trimIndent()
+}
 
 fun downloadImage(imageUrl: String?, imageFilename: String) {
     if (imageUrl.isNullOrEmpty()) {

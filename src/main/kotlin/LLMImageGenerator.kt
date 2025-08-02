@@ -15,7 +15,7 @@ class LLMImageGenerator {
     ```
     {words}
     ```
-    Make the image in the style of `{style}` and ensure it is colorful and engaging.
+    Make the image in the style of `{style}` and be creative.
     """.trimIndent()
 
     private val styleList = listOf(

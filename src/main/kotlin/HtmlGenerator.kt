@@ -18,7 +18,6 @@ import kotlin.collections.set
 
 fun main() {
     val gameReplayData = loadGameState()
-    val guesserStats = GuesserStatsRepository().loadStats()
 
     // Clear existing replay file
     File(REPLAY_HTML_FILENAME).writeText("")
@@ -30,7 +29,6 @@ fun main() {
         systemMessage = gameReplayData.systemMessage,
         guessChat = gameReplayData.guessChat,
         finalMessages = gameReplayData.finalMessages,
-        guesserStats = guesserStats
     )
 }
 
@@ -42,7 +40,6 @@ fun saveHtmlReplay(
     systemMessage: ChatMessage,
     guessChat: List<Pair<ChatMessage, QuordleGuessResponse>>,
     finalMessages: List<ChatMessage>,
-    guesserStats: GuesserStats,
 ) {
 
     val htmlContent = createHTML().html {
@@ -85,6 +82,22 @@ fun saveHtmlReplay(
                     .result-word { padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 18px; text-transform: uppercase; color: white; border: 2px solid; }
                     .result-word.solved { background-color: #6aaa64; border-color: #6aaa64; }
                     .result-word.unsolved { background-color: #d73a49; border-color: #d73a49; }
+                    
+                    /* Statistics Styles */
+                    .stats-container { margin: 16px 0; padding: 16px; border: 1px solid #d3d6da; border-radius: 8px; background-color: #fafafa; font-style: normal; }
+                    .stats-title { margin: 0 0 16px 0; font-size: 18px; font-weight: bold; color: #333; text-align: center; }
+                    .stats-overview { display: flex; justify-content: space-around; margin-bottom: 24px; gap: 8px; }
+                    .stat-item { text-align: center; flex: 1; }
+                    .stat-number { font-size: 24px; font-weight: bold; color: #6aaa64; margin-bottom: 4px; }
+                    .stat-label { font-size: 12px; color: #666; text-transform: uppercase; font-weight: 500; }
+                    .stats-distribution { margin-top: 16px; }
+                    .distribution-title { margin: 0 0 12px 0; font-size: 14px; font-weight: bold; color: #333; text-align: center; }
+                    .stat-bars { display: flex; flex-direction: column; gap: 4px; }
+                    .stat-bar-row { display: flex; align-items: center; gap: 8px; }
+                    .stat-bar-label { width: 20px; text-align: center; font-size: 14px; font-weight: bold; color: #333; }
+                    .stat-bar-container { flex: 1; height: 20px; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; }
+                    .stat-bar-fill { height: 100%; background-color: #6aaa64; transition: width 0.3s ease; min-width: 0; }
+                    .stat-bar-count { width: 30px; text-align: center; font-size: 12px; color: #666; }
                 """
                     )
                 }
@@ -185,8 +198,8 @@ fun saveHtmlReplay(
             script {
                 unsafe {
                     raw("""
-                    const allMessages = document.querySelectorAll('.message:not(.system)');
-                    let current = 0;
+                    const allMessages = document.querySelectorAll('.message)');
+                    let current = 1;
                     let attemptCount = 0;
                     
                     // Add click handlers for user messages
