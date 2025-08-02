@@ -14,11 +14,21 @@ fun main() {
     if (!outputDir.exists()) {
         outputDir.mkdirs()
     }
-    val quordleDriver = QuordleWebDriver()
 
+    // Initialize S3 repository if bucket name is provided
+    val s3BucketName = System.getenv("S3_BUCKET_NAME")
+    val s3Repository = if (!s3BucketName.isNullOrBlank()) {
+        println("Using S3 bucket: $s3BucketName")
+        S3BucketRepository(s3BucketName)
+    } else {
+        println("Using local filesystem")
+        null
+    }
+
+    val quordleDriver = QuordleWebDriver()
     val llmGuesser = LLMQuordleGuesser()
     val llmImageGenerator = LLMImageGenerator()
-    val llmGuesserStatsRepository = GuesserStatsRepository()
+    val llmGuesserStatsRepository = GuesserStatsRepository(s3Repository)
 
     try {
         quordleDriver.initializeDriver()
@@ -62,7 +72,7 @@ fun main() {
 
         if (gameState.isSolved()) {
             val (imagePrompt, imageUrl) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
-            downloadImage(imageUrl, IMAGE_FILENAME)
+            downloadImage(imageUrl, IMAGE_FILENAME, s3Repository)
             finalMessages.addAll(getGameSolvedFinalMessages(imagePrompt, IMAGE_FILENAME, guesserStats))
         } else {
             finalMessages.addAll(getGameFailedFinalMessages(guesserStats))
@@ -82,6 +92,7 @@ fun main() {
             systemMessage,
             guessChat,
             finalMessages,
+            s3Repository
         )
 
     } finally {
@@ -176,7 +187,7 @@ private fun generateStatsHtml(stats: GuesserStats): String {
     """.trimIndent()
 }
 
-fun downloadImage(imageUrl: String?, imageFilename: String) {
+fun downloadImage(imageUrl: String?, imageFilename: String, s3Repository: S3BucketRepository?) {
     if (imageUrl.isNullOrEmpty()) {
         return
     }
@@ -194,6 +205,12 @@ fun downloadImage(imageUrl: String?, imageFilename: String) {
             }
         }
         println("Image downloaded successfully to ${destinationFile.absolutePath}")
+
+        // Upload to S3 if repository is available
+        s3Repository?.let {
+            it.uploadFile(imageFilename, destinationFile)
+            println("Image uploaded to S3")
+        }
     } catch (e: Exception) {
         println("Failed to download image: ${e.message}")
         e.printStackTrace()

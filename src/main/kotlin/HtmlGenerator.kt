@@ -40,6 +40,7 @@ fun saveHtmlReplay(
     systemMessage: ChatMessage,
     guessChat: List<Pair<ChatMessage, QuordleGuessResponse>>,
     finalMessages: List<ChatMessage>,
+    s3Repository: S3BucketRepository? = null
 ) {
 
     val htmlContent = createHTML().html {
@@ -337,8 +338,14 @@ fun saveHtmlReplay(
         }
     }
 
-    // Write to static path
-    File(REPLAY_HTML_FILENAME).writeText(htmlContent)
-    //set write permissions
-    println("Replay saved to replay.html")
+    // Write to local path
+    val localHtmlFile = File(REPLAY_HTML_FILENAME)
+    localHtmlFile.writeText(htmlContent)
+    println("Replay saved to ${localHtmlFile.name}")
+
+    // Upload to S3 if repository is available
+    s3Repository?.let {
+        it.uploadFile(HTML_FILENAME, localHtmlFile)
+        println("HTML uploaded to S3")
+    }
 }
