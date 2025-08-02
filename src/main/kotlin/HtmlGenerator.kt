@@ -32,7 +32,8 @@ fun main() {
     )
 }
 
-private val REPLAY_HTML_FILENAME = OUTPUT_FILEPATH + "daily-quordle-solver.html"
+const val HTML_FILENAME = "daily-quordle-solver.html"
+private val REPLAY_HTML_FILENAME = OUTPUT_FILEPATH + HTML_FILENAME
 
 fun saveHtmlReplay(
     gameState: GameState,
