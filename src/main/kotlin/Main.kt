@@ -32,10 +32,7 @@ fun main() {
 
     try {
         quordleDriver.initializeDriver()
-
-        //var gameState = quordleDriver.parseGameState()
-        val gameReplayData = loadGameState()
-        var gameState = gameReplayData.gameState
+        var gameState = quordleDriver.parseGameState()
 
         while (gameState.isInProgress()) {
 
