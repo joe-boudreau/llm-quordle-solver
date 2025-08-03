@@ -20,6 +20,7 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:3.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.9.1") // Added for HTML generation
     implementation("software.amazon.awssdk:s3:2.21.29") // Added for S3 support
+    implementation("com.amazonaws:aws-lambda-java-runtime-interface-client:2.8.3")
 }
 
 application {

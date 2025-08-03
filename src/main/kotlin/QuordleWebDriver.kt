@@ -20,17 +20,19 @@ class QuordleWebDriver {
             //addArguments("--disable-blink-features=AutomationControlled")
             addArguments("--no-sandbox")
             //addArguments("--disable-dev-shm-usage")
-            // Add these to improve headless performance
             addArguments("--disable-gpu")
             addArguments("--disable-extensions")
             addArguments("--blink-settings=imagesEnabled=false")
-
-            // Optional: If you want to see what's happening, comment this out
             addArguments("--headless=new")
-            // Set a user agent that doesn't reveal it's a headless browser
             addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            //setExperimentalOption("excludeSwitches", listOf("enable-automation"))
-            //setExperimentalOption("useAutomationExtension", false)
+
+            if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
+                addArguments("--user-data-dir=${mkdtemp()}")
+                addArguments("--data-path=${mkdtemp()}")
+                addArguments("--disk-cache-dir=${mkdtemp()}")
+                addArguments("--log-path=/tmp")
+                println("Running in AWS Lambda environment, using temporary directories for Chrome data.")
+            }
         }
 
         try {
@@ -141,5 +143,10 @@ class QuordleWebDriver {
 
     fun close() {
         driver.quit()
+    }
+
+    fun mkdtemp(): String {
+        // Create a unique temporary directory under the /tmp folder
+        return "/tmp/" + "quordle-webdriver-${System.currentTimeMillis()}-" + (0..9999).random()
     }
 }

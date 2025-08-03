@@ -291,7 +291,7 @@ fun saveHtmlReplay(
                         }
                         
                         // For reasoning messages, get the content from the p tag
-                        const contentP = el.querySelector('> p');
+                        const contentP = el.querySelector(':scope > p');
                         if (!contentP) {
                             console.error('No content found for message:', el);
                             current++;
