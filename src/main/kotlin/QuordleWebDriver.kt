@@ -31,6 +31,26 @@ class QuordleWebDriver {
             }
 
             if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
+
+                // Process management - critical for Lambda
+                addArguments("--single-process")
+                addArguments("--no-zygote")
+                addArguments("--disable-background-timer-throttling")
+                addArguments("--disable-renderer-backgrounding")
+                addArguments("--disable-backgrounding-occluded-windows")
+
+                // Memory limits
+                addArguments("--memory-pressure-off")
+                addArguments("--max_old_space_size=256")
+                addArguments("--aggressive-cache-discard")
+
+                // Disable heavy features
+                addArguments("--disable-extensions")
+                addArguments("--disable-plugins")
+                addArguments("--disable-images")  // Try without images first
+                addArguments("--disable-web-security")
+                addArguments("--disable-features=VizDisplayCompositor,AudioServiceOutOfProcess")
+
                 val dir1 = mkdtemp()
                 val dir2 = mkdtemp()
                 val dir3 = mkdtemp()
@@ -61,6 +81,19 @@ class QuordleWebDriver {
                 .pageLoadTimeout(Duration.ofSeconds(30))
                 .implicitlyWait(Duration.ofSeconds(30))
                 .scriptTimeout(Duration.ofSeconds(30))
+
+            try {
+                println("Testing with simple page first...")
+                driver.get("data:text/html,<html><body><h1>Test</h1></body></html>")
+                println("Simple page loaded successfully")
+
+                println("Testing with httpbin...")
+                driver.get("https://httpbin.org/html")
+                println("HttpBin loaded successfully")
+
+            } catch (e: Exception) {
+                println("Error during navigation: ${e.message}")
+            }
 
             println("Attempting to navigate to Quordle page...")
             try {

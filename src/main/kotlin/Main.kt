@@ -3,6 +3,7 @@ import com.aallam.openai.api.chat.ChatRole
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.net.URI
+import kotlin.system.exitProcess
 
 val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 const val IMAGE_FILENAME = "generated_quordle_art.png"
@@ -95,6 +96,8 @@ fun main() {
     } finally {
         quordleDriver.close()
     }
+    println("Run completed. All outputs saved.")
+    exitProcess(0)
 }
 
 fun getGameSolvedFinalMessages(imagePrompt: String, imageFilename: String, guesserStats: GuesserStats) = listOf(
