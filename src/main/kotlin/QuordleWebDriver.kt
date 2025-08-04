@@ -17,9 +17,8 @@ class QuordleWebDriver {
     fun initializeDriver() {
         println("Initializing WebDriver...")
         val options = ChromeOptions().apply {
-            //addArguments("--disable-blink-features=AutomationControlled")
             addArguments("--no-sandbox")
-            //addArguments("--disable-dev-shm-usage")
+            addArguments("--disable-dev-shm-usage")
             addArguments("--disable-gpu")
             addArguments("--disable-extensions")
             addArguments("--blink-settings=imagesEnabled=false")

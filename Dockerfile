@@ -35,5 +35,5 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # Copy the JAR file
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/quordle-solver.jar
-
+USER blessuser
 ENTRYPOINT ["java","-jar","/app/quordle-solver.jar"]
