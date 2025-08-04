@@ -9,6 +9,8 @@ import java.time.Duration
 class QuordleWebDriver {
     private lateinit var driver: ChromeDriver
 
+    private val DEBUG_MODE = System.getenv("DEBUG_MODE")?.toBoolean() ?: false
+
     /**
      * List of 4 game boards, each containing a list of 9 rows
      */
@@ -24,13 +26,28 @@ class QuordleWebDriver {
             addArguments("--blink-settings=imagesEnabled=false")
             addArguments("--headless=new")
             addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            if (DEBUG_MODE) {
+                addArguments("--verbose")
+            }
 
             if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
-                addArguments("--user-data-dir=${mkdtemp()}")
-                addArguments("--data-path=${mkdtemp()}")
-                addArguments("--disk-cache-dir=${mkdtemp()}")
+                val dir1 = mkdtemp()
+                val dir2 = mkdtemp()
+                val dir3 = mkdtemp()
+                addArguments("--user-data-dir=$dir1")
+                addArguments("--data-path=$dir2")
+                addArguments("--disk-cache-dir=$dir3")
                 addArguments("--log-path=/tmp")
                 println("Running in AWS Lambda environment, using temporary directories for Chrome data.")
+                // Make the directories
+                listOf(dir1, dir2, dir3).forEach { dir ->
+                    val process = ProcessBuilder("mkdir", "-p", dir).start()
+                    process.waitFor()
+                    if (process.exitValue() != 0) {
+                        throw RuntimeException("Failed to create directory: $dir")
+                    }
+                }
+                println("Temporary directories created: $dir1, $dir2, $dir3")
             }
         }
 
