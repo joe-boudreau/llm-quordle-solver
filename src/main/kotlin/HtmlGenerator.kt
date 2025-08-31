@@ -44,6 +44,10 @@ fun saveHtmlReplay(
     s3Repository: S3BucketRepository? = null
 ) {
 
+    val todaysDate = java.time.LocalDate.now().toString()
+    val modelId = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A"
+    val reasoningEffort = System.getenv("OPENAI_REASONING_EFFORT") ?: "N/A"
+
     val htmlContent = createHTML().html {
         head {
             meta(charset = "utf-8")
@@ -101,6 +105,11 @@ fun saveHtmlReplay(
                     .stat-bar-container { flex: 1; height: 20px; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; }
                     .stat-bar-fill { height: 100%; background-color: #6aaa64; transition: width 0.3s ease; min-width: 0; }
                     .stat-bar-count { width: 30px; text-align: center; font-size: 12px; color: #666; }
+                    
+                    /* Info footer styles */
+                    .info-footer { position: fixed; bottom: 0; left: 0; right: 50%; background-color: rgba(240, 240, 240, 0.95); padding: 8px 20px; font-size: 12px; color: #666; border-top: 1px solid #d3d6da; display: flex; gap: 20px; z-index: 1000; }
+                    .info-item { display: flex; gap: 4px; }
+                    .info-label { font-weight: bold; }
                 """
                     )
                 }
@@ -138,6 +147,22 @@ fun saveHtmlReplay(
                             div(classes = "result-word ${if (isSolved) "solved" else "unsolved"}") {
                                 +word
                             }
+                        }
+                    }
+
+                    // Info footer with date, model, and reasoning effort
+                    div(classes = "info-footer") {
+                        div(classes = "info-item") {
+                            span(classes = "info-label") { +"Date:" }
+                            span { +todaysDate }
+                        }
+                        div(classes = "info-item") {
+                            span(classes = "info-label") { +"Model:" }
+                            span { +modelId }
+                        }
+                        div(classes = "info-item") {
+                            span(classes = "info-label") { +"Reasoning:" }
+                            span { +reasoningEffort }
                         }
                     }
                 }
