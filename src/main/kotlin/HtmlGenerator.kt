@@ -361,6 +361,24 @@ fun saveHtmlReplay(
                     )
                 }
             }
+
+            // StatCounter tracking
+            script(type = "text/javascript") {
+                unsafe {
+                    raw("""
+                    var sc_project=12088911;
+                    var sc_invisible=1;
+                    var sc_security="8aad1c2e";
+                    """)
+                }
+            }
+            script(type = "text/javascript") {
+                attributes["src"] = "https://www.statcounter.com/counter/counter.js"
+                attributes["async"] = "true"
+            }
+            unsafe {
+                raw("""<noscript><div class="statcounter"><a title="Web Analytics" href="https://statcounter.com/" target="_blank"><img class="statcounter" src="https://c.statcounter.com/12088911/0/8aad1c2e/1/" alt="Web Analytics" referrerPolicy="no-referrer-when-downgrade"></a></div></noscript>""")
+            }
         }
     }
 
