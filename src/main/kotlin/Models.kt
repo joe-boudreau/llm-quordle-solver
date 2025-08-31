@@ -8,7 +8,10 @@ data class GameState(
     override fun toString() = "Attempts: ${numAttempts()} / 9 \n" +
             this.boardStates.withIndex().joinToString("\n\n") { (i, boardState) ->
                 "Board ${i + 1}, Solved: ${boardState.isSolved()}, Guess Results:\n$boardState"
-            }
+            } + "\n" +
+            "Used & Present Letters: ${usedAndPresentLetters.sorted().joinToString(", ")}\n" +
+            "Used & Absent Letters: ${usedAndAbsentLetters.sorted().joinToString(", ")}\n" +
+            "Unused Letters: ${unusedLetters.sorted().joinToString(", ")}"
 
     fun isSolved() = boardStates.all { it.isSolved() }
 
@@ -22,6 +25,23 @@ data class GameState(
             .flatMap { it.word.toCharArray().toList() }
             .toSet()
     }
+
+    val usedLetters: Set<Char> = boardStates
+        .flatMap { it.attempts }
+        .flatMap { it.word.toCharArray().toList() }
+        .toSet()
+    val usedAndPresentLetters: Set<Char> = boardStates
+        .flatMap { it.attempts }
+        .flatMap { attempt ->
+            attempt.word.toCharArray()
+                .zip(attempt.feedback)
+                .filter { (_, state) -> state == TileState.PRESENT || state == TileState.CORRECT }
+                .map { (char, _) -> char }
+        }
+        .toSet()
+    val usedAndAbsentLetters: Set<Char> = usedLetters - usedAndPresentLetters
+    val allLetters: Set<Char> = ('A'..'Z').toSet()
+    val unusedLetters: Set<Char> = allLetters - usedLetters
 
     fun getFinalWords(): List<String> {
         return boardStates.map { it.attempts.lastOrNull()?.word ?: "" }
