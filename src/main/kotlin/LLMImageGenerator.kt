@@ -16,7 +16,7 @@ class LLMImageGenerator {
     {words}
     ```
     Make the image in the style of `{style}`. 
-    The words don't *need* to be directly represented, but the overall theme and mood of the image should reflect them. 
+    Please produce a single coherent image, not a collage of different images.
     Use colors, shapes, and composition to evoke the essence of any words you can't incorporate directly. 
     The image should be visually striking and imaginative.
     """.trimIndent()
