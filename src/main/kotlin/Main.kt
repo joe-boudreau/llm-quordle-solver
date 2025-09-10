@@ -130,7 +130,7 @@ private fun getFinalSystemMessages(guesserStats: GuesserStats) = listOf(
     ChatMessage(
         role = ChatRole.System,
         content = "<div><p><a class=\"link\" href=\"https://github.com/joe-boudreau/llm-quordle-solver\">Source Code</a></p>" +
-                "<p><a class=\"link\" href=\"/post/getting-an-llm-to-solve-the-daily-quordle\">How I Made This</a></p></div>"
+                "<p><a class=\"link\" href=\"https://www.flowtwo.io/post/automating-quordle-with-an-llm\">How I Made This</a></p></div>"
     ),
 )
 
