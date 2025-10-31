@@ -13,9 +13,10 @@ dependencies {
     implementation(kotlin("stdlib"))
     testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("org.seleniumhq.selenium:selenium-java:4.38.0")
-    implementation("org.seleniumhq.selenium:selenium-chrome-driver:4.38.0")
-    implementation("org.seleniumhq.selenium:selenium-support:4.38.0")
+    implementation("org.seleniumhq.selenium:selenium-java:4.36.0")
+    implementation("org.seleniumhq.selenium:selenium-chrome-driver:4.36.0")
+    implementation("org.seleniumhq.selenium:selenium-support:4.36.0")
+    implementation("org.seleniumhq.selenium:selenium-devtools-v138:4.36.0")
     implementation("com.aallam.openai:openai-client:4.0.1")
     implementation("io.ktor:ktor-client-cio:3.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.9.1") // Added for HTML generation

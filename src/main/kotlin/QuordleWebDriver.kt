@@ -1,5 +1,6 @@
 import org.openqa.selenium.By
 import org.openqa.selenium.Keys
+import org.openqa.selenium.PageLoadStrategy
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
@@ -22,12 +23,19 @@ class QuordleWebDriver {
             addArguments("--no-sandbox")
             addArguments("--disable-dev-shm-usage")
             addArguments("--disable-gpu")
-            addArguments("--disable-extensions")
             addArguments("--blink-settings=imagesEnabled=false")
             addArguments("--headless=new")
             addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            if (DEBUG_MODE) {
-                addArguments("--verbose")
+            setPageLoadStrategy(PageLoadStrategy.EAGER) // Correct way to set pageLoadStrategy
+
+            // Load uBlock-Lite extension
+            val adblockPath = "uBOL-ext"
+            val adblockDir = java.io.File(adblockPath)
+            if (adblockDir.exists() && adblockDir.isDirectory) {
+                println("Loading uBlock Origin extension for ad blocking...")
+                addArguments("--load-extension=${adblockDir.absolutePath}")
+            } else {
+                println("uBlock Origin extension not found at $adblockPath. Ads may not be blocked.")
             }
 
             if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
@@ -45,7 +53,6 @@ class QuordleWebDriver {
                 addArguments("--aggressive-cache-discard")
 
                 // Disable heavy features
-                addArguments("--disable-extensions")
                 addArguments("--disable-plugins")
                 addArguments("--disable-images")  // Try without images first
                 addArguments("--disable-web-security")
@@ -104,7 +111,11 @@ class QuordleWebDriver {
                 println("Page load timed out, but continuing anyway...")
             }
 
-            driver.findElements(By.cssSelector("div[aria-label='Game Boards']")).isNotEmpty()
+            // Explicitly wait for the game board element
+            val wait = org.openqa.selenium.support.ui.WebDriverWait(driver, Duration.ofSeconds(30))
+            wait.until { d ->
+                d.findElements(By.cssSelector("div[aria-label='Game Boards']")).isNotEmpty()
+            }
             println("Game boards loaded.")
 
             val board1 = driver.findElement(By.cssSelector("div[aria-label='Game Boards'] > div[aria-label='Game Boards Row 1'] > div[aria-label='Game Board 1']"))
