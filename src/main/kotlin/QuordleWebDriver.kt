@@ -1,7 +1,4 @@
-import org.openqa.selenium.By
-import org.openqa.selenium.Keys
-import org.openqa.selenium.PageLoadStrategy
-import org.openqa.selenium.WebElement
+import org.openqa.selenium.*
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.interactions.Actions
@@ -10,7 +7,7 @@ import java.time.Duration
 class QuordleWebDriver {
     private lateinit var driver: ChromeDriver
 
-    private val DEBUG_MODE = System.getenv("DEBUG_MODE")?.toBoolean() ?: false
+    private val uBlockExtensionPath = System.getenv("UBLOCK_EXT_PATH") ?: "uBOL-ext"
 
     /**
      * List of 4 game boards, each containing a list of 9 rows
@@ -23,19 +20,26 @@ class QuordleWebDriver {
             addArguments("--no-sandbox")
             addArguments("--disable-dev-shm-usage")
             addArguments("--disable-gpu")
+            addArguments("--disable-web-security")
             addArguments("--blink-settings=imagesEnabled=false")
             addArguments("--headless=new")
             addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            setPageLoadStrategy(PageLoadStrategy.EAGER) // Correct way to set pageLoadStrategy
+            setPageLoadStrategy(PageLoadStrategy.EAGER)
 
-            // Load uBlock-Lite extension
-            val adblockPath = "uBOL-ext"
-            val adblockDir = java.io.File(adblockPath)
+            val adblockDir = java.io.File(uBlockExtensionPath)
             if (adblockDir.exists() && adblockDir.isDirectory) {
-                println("Loading uBlock Origin extension for ad blocking...")
+                println("Files in extension dir: ${adblockDir.absolutePath} -> ${adblockDir.list()?.toList()}")
+                val manifest = java.io.File(adblockDir, "manifest.json")
+                if (!manifest.exists()) {
+                    println("WARN: manifest.json not found in extension directory; extension cannot load.")
+                }
+                println("Loading uBlock Origin extension for ad blocking via --load-extension ...")
                 addArguments("--load-extension=${adblockDir.absolutePath}")
+                addArguments("--enable-extensions")
+                // Force non-incognito & allow extensions in headless (defensive; some images add restrictive flags)
+                addArguments("--allow-running-insecure-content") // Not required, but sometimes images add strict content policies
             } else {
-                println("uBlock Origin extension not found at $adblockPath. Ads may not be blocked.")
+                println("uBlock Origin extension not found at: $uBlockExtensionPath (pwd=${java.io.File(".").absolutePath})")
             }
 
             if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
@@ -54,8 +58,7 @@ class QuordleWebDriver {
 
                 // Disable heavy features
                 addArguments("--disable-plugins")
-                addArguments("--disable-images")  // Try without images first
-                addArguments("--disable-web-security")
+                addArguments("--disable-images")
                 addArguments("--disable-features=VizDisplayCompositor,AudioServiceOutOfProcess")
 
                 val dir1 = mkdtemp()
