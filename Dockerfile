@@ -10,14 +10,23 @@ RUN gradle clean build -i --stacktrace
 # Stage 2: Build Application
 FROM gradle:latest AS build
 COPY --from=cache /home/gradle/cache_home /home/gradle/.gradle
-COPY . /usr/src/app/
-WORKDIR /usr/src/app
-COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
+
+# Copy only build files first (these change less frequently)
+COPY --chown=gradle:gradle build.gradle.* gradle.properties ./
+COPY --chown=gradle:gradle gradle ./gradle
+
+# Download dependencies (this layer will be cached)
+RUN gradle dependencies --no-daemon || true
+
+# Now copy source code (this changes more frequently)
+COPY --chown=gradle:gradle src ./src
+
+# Build the application
 RUN gradle shadowJar --no-daemon
 
 # Stage 3: Create the Runtime Image
-FROM ghcr.io/browserless/chromium:latest AS runtime
+FROM selenium/standalone-chromium:142.0.7444.59-chromedriver-142.0.7444.59 AS runtime
 USER root
 # Install Java 22
 RUN apt-get update && \
@@ -35,5 +44,6 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # Copy the JAR file
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/quordle-solver.jar
-USER blessuser
+# copy the uBlock Extension files
+COPY uBOL-ext /uBOL-ext
 ENTRYPOINT ["java","-jar","/app/quordle-solver.jar"]
