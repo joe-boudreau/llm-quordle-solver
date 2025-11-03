@@ -1,5 +1,6 @@
 import org.openqa.selenium.*
 import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.chrome.ChromeDriverService
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.interactions.Actions
 import java.time.Duration
@@ -8,6 +9,7 @@ class QuordleWebDriver {
     private lateinit var driver: ChromeDriver
 
     private val uBlockExtensionPath = System.getenv("UBLOCK_EXT_PATH") ?: "uBOL-ext"
+    private val DEBUG_MODE = System.getenv("DEBUG_MODE")?.toBoolean() ?: false
 
     /**
      * List of 4 game boards, each containing a list of 9 rows
@@ -21,8 +23,13 @@ class QuordleWebDriver {
             addArguments("--disable-dev-shm-usage")
             addArguments("--disable-gpu")
             addArguments("--disable-web-security")
+            addArguments("--disable-setuid-sandbox")
             addArguments("--blink-settings=imagesEnabled=false")
             addArguments("--headless=new")
+            if (DEBUG_MODE) {
+                addArguments("--verbose")
+                addArguments("--log-level=ALL")
+            }
             addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             setPageLoadStrategy(PageLoadStrategy.EAGER)
 
@@ -45,18 +52,25 @@ class QuordleWebDriver {
             if (System.getenv("AWS_LAMBDA_FUNCTION_NAME") != null) {
 
                 // Process management - critical for Lambda
-                addArguments("--single-process")
                 addArguments("--no-zygote")
                 addArguments("--disable-background-timer-throttling")
                 addArguments("--disable-renderer-backgrounding")
                 addArguments("--disable-backgrounding-occluded-windows")
+                addArguments("--disable-crash-reporter")
 
                 // Memory limits
                 addArguments("--memory-pressure-off")
-                addArguments("--max_old_space_size=256")
                 addArguments("--aggressive-cache-discard")
 
                 // Disable heavy features
+                addArguments("--use-gl=swiftshader")
+                addArguments("--disable-software-rasterizer")
+                addArguments("--disable-gpu-compositing")
+                addArguments("--disable-gpu-sandbox")
+                addArguments("--disable-accelerated-2d-canvas")
+                addArguments("--disable-accelerated-jpeg-decoding")
+                addArguments("--disable-accelerated-mjpeg-decode")
+                addArguments("--disable-accelerated-video-decode")
                 addArguments("--disable-plugins")
                 addArguments("--disable-images")
                 addArguments("--disable-features=VizDisplayCompositor,AudioServiceOutOfProcess")
@@ -68,6 +82,7 @@ class QuordleWebDriver {
                 addArguments("--data-path=$dir2")
                 addArguments("--disk-cache-dir=$dir3")
                 addArguments("--log-path=/tmp")
+                addArguments("--crash-dumps-dir=/tmp")
                 println("Running in AWS Lambda environment, using temporary directories for Chrome data.")
                 // Make the directories
                 listOf(dir1, dir2, dir3).forEach { dir ->
@@ -84,7 +99,16 @@ class QuordleWebDriver {
         try {
 
             println("Setting up Chrome options...")
-            driver = ChromeDriver(options)
+            val service = with(ChromeDriverService.Builder()) {
+                withLogOutput(System.out)
+                if (DEBUG_MODE) {
+                    withVerbose(true)
+                }
+                usingAnyFreePort()
+                build()
+            }
+
+            driver = ChromeDriver(service, options)
             println("WebDriver initialized.")
 
             driver.manage().timeouts()

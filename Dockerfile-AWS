@@ -1,7 +1,7 @@
 # Stage 1: Cache Gradle dependencies
 FROM gradle:latest AS cache
 RUN mkdir -p /home/gradle/cache_home
-ENV GRADLE_USER_HOME=/home/gradle/cache_home
+ENV GRADLE_USER_HOME /home/gradle/cache_home
 COPY build.gradle.* gradle.properties /home/gradle/app/
 COPY gradle /home/gradle/app/gradle
 WORKDIR /home/gradle/app
@@ -48,7 +48,7 @@ WORKDIR /function
 # Copy the JAR file to function directory
 COPY --from=build /home/gradle/src/build/libs/*.jar ./
 # copy the uBlock Extension files
-COPY uBOL-ext /uBOL-ext
+COPY uBOL-ext ./uBOL-ext
 # Set runtime interface client as default command for the container runtime
 ENTRYPOINT ["/usr/bin/java", "-cp", "./*", "com.amazonaws.services.lambda.runtime.api.client.AWSLambda"]
 # Pass the name of the function handler as an argument to the runtime
