@@ -1,6 +1,7 @@
 import com.aallam.openai.api.http.Timeout
 import com.aallam.openai.api.image.ImageCreation
 import com.aallam.openai.api.image.ImageSize
+import com.aallam.openai.api.image.OutputFormat
 import com.aallam.openai.api.logging.LogLevel
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.LoggingConfig
@@ -126,15 +127,16 @@ class LLMImageGenerator {
             .replace("{words}", words.joinToString(", "))
             .replace("{style}", randomStyle)
 
-        val response = runBlocking { openAiClient.imageURL( // or openAI.imageJSON
+        val response = runBlocking { openAiClient.imageCreate(
             creation = ImageCreation(
                 prompt = prompt,
                 model = modelId,
                 n = 1,
                 size = ImageSize.is1024x1024,
+                outputFormat = OutputFormat.PNG
             )
         ) }
 
-        return prompt to response.first().url
+        return prompt to response.first().b64JSON
     }
 }

@@ -2,7 +2,6 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.net.URI
 
 val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 const val IMAGE_FILENAME = "generated_quordle_art.png"
@@ -70,8 +69,8 @@ class QuordleGameRunner {
             val guesserStats = llmGuesserStatsRepository.updateStats(gameState)
 
             if (gameState.isSolved()) {
-                val (imagePrompt, imageUrl) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
-                downloadImage(imageUrl, IMAGE_FILENAME, s3Repository)
+                val (imagePrompt, imageBase64) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
+                saveImage(imageBase64, IMAGE_FILENAME, s3Repository)
                 finalMessages.addAll(getGameSolvedFinalMessages(imagePrompt, IMAGE_FILENAME, guesserStats))
             } else {
                 finalMessages.addAll(getGameFailedFinalMessages(guesserStats))
@@ -188,8 +187,8 @@ private fun generateStatsHtml(stats: GuesserStats): String {
     """.trimIndent()
 }
 
-fun downloadImage(imageUrl: String?, imageFilename: String, s3Repository: S3BucketRepository?) {
-    if (imageUrl.isNullOrEmpty()) {
+fun saveImage(base64Image: String?, imageFilename: String, s3Repository: S3BucketRepository?) {
+    if (base64Image.isNullOrEmpty()) {
         return
     }
 
@@ -197,15 +196,9 @@ fun downloadImage(imageUrl: String?, imageFilename: String, s3Repository: S3Buck
     val destinationFile = File(imageFilepath)
 
     try {
-        val uri = URI.create(imageUrl)
-        val connection = uri.toURL().openConnection()
-        connection.connect()
-        connection.getInputStream().use { input ->
-            destinationFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        }
-        println("Image downloaded successfully to ${destinationFile.absolutePath}")
+        val imageBytes = java.util.Base64.getDecoder().decode(base64Image)
+        destinationFile.writeBytes(imageBytes)
+        println("Image saved successfully to ${destinationFile.absolutePath}")
 
         // Upload to S3 if repository is available
         s3Repository?.let {
@@ -213,7 +206,7 @@ fun downloadImage(imageUrl: String?, imageFilename: String, s3Repository: S3Buck
             println("Image uploaded to S3")
         }
     } catch (e: Exception) {
-        println("Failed to download image: ${e.message}")
+        println("Failed to save image: ${e.message}")
         e.printStackTrace()
     }
 }

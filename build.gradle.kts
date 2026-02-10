@@ -5,10 +5,6 @@ plugins {
     application
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     implementation(kotlin("stdlib"))
     testImplementation(kotlin("test"))
@@ -17,7 +13,9 @@ dependencies {
     implementation("org.seleniumhq.selenium:selenium-chrome-driver:4.38.0")
     implementation("org.seleniumhq.selenium:selenium-support:4.38.0")
     implementation("org.seleniumhq.selenium:selenium-devtools-v142:4.38.0")
-    implementation("com.aallam.openai:openai-client:4.0.1")
+    // https://github.com/joe-boudreau/openai-kotlin fork
+    // compiled from jitpack
+    implementation("com.github.joe-boudreau.openai-kotlin:openai-client:4.1.3")
     implementation("io.ktor:ktor-client-cio:3.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.9.1") // Added for HTML generation
     implementation("software.amazon.awssdk:s3:2.21.29") // Added for S3 support
