@@ -1,1 +1,1 @@
-docker build --provenance=false -t quordle-solver:latest .
+docker build -t quordle-solver:latest .

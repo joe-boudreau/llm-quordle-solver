@@ -38,12 +38,15 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set JAVA_HOME and update PATH
-ENV JAVA_HOME=/usr/lib/jvm/temurin-22-jdk-amd64
+# Set JAVA_HOME dynamically based on architecture
+RUN ARCH=$(dpkg --print-architecture) && \
+    ln -s /usr/lib/jvm/temurin-22-jdk-${ARCH} /usr/lib/jvm/temurin-22-jdk
+ENV JAVA_HOME=/usr/lib/jvm/temurin-22-jdk
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # Copy the JAR file
 COPY --from=build /home/gradle/src/build/libs/*.jar /app/quordle-solver.jar
 # copy the uBlock Extension files
 COPY uBOL-ext /uBOL-ext
-ENTRYPOINT ["java","-jar","/app/quordle-solver.jar"]
+# Pass chromedriver location to Selenium via system property, bypassing Selenium Manager
+ENTRYPOINT ["java", "-Dwebdriver.chrome.driver=/usr/bin/chromedriver", "-jar", "/app/quordle-solver.jar"]
