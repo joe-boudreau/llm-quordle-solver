@@ -2,7 +2,7 @@
 FROM gradle:latest AS cache
 RUN mkdir -p /home/gradle/cache_home
 ENV GRADLE_USER_HOME /home/gradle/cache_home
-COPY build.gradle.* gradle.properties /home/gradle/app/
+COPY build.gradle.* gradle.properties settings.gradle.* /home/gradle/app/
 COPY gradle /home/gradle/app/gradle
 WORKDIR /home/gradle/app
 RUN gradle clean build -i --stacktrace
@@ -13,7 +13,7 @@ COPY --from=cache /home/gradle/cache_home /home/gradle/.gradle
 WORKDIR /home/gradle/src
 
 # Copy only build files first (these change less frequently)
-COPY --chown=gradle:gradle build.gradle.* gradle.properties ./
+COPY --chown=gradle:gradle build.gradle.* gradle.properties settings.gradle.* ./
 COPY --chown=gradle:gradle gradle ./gradle
 
 # Download dependencies (this layer will be cached)

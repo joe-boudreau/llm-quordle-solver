@@ -1,4 +1,5 @@
 import com.aallam.openai.api.chat.ChatMessage
+import kotlinx.html.a
 import kotlinx.html.i
 import kotlinx.html.small
 import kotlinx.html.body
@@ -47,6 +48,8 @@ fun saveHtmlReplay(
     val todaysDate = java.time.LocalDate.now().toString()
     val modelId = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A"
     val reasoningEffort = System.getenv("OPENAI_REASONING_EFFORT") ?: "N/A"
+    val imageModelId = System.getenv("OPENAI_IMAGE_MODEL_ID") ?: "N/A"
+    val quordleLink = "https://www.merriam-webster.com/games/quordle/#/"
 
     val htmlContent = createHTML().html {
         head {
@@ -163,6 +166,13 @@ fun saveHtmlReplay(
                         div(classes = "info-item") {
                             span(classes = "info-label") { +"Reasoning:" }
                             span { +reasoningEffort }
+                        }
+                        div(classes = "info-item") {
+                            span(classes = "info-label") { +"Image Model:" }
+                            span { +imageModelId }
+                        }
+                        div(classes = "info-item") {
+                            a(classes = "info-label", href = quordleLink) { +"Today's Quordle" }
                         }
                     }
                 }
