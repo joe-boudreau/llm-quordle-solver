@@ -113,6 +113,10 @@ fun saveHtmlReplay(
                     .info-footer { position: fixed; bottom: 0; left: 0; right: 50%; background-color: rgba(240, 240, 240, 0.95); padding: 8px 20px; font-size: 12px; color: #666; border-top: 1px solid #d3d6da; display: flex; gap: 20px; z-index: 1000; }
                     .info-item { display: flex; gap: 4px; }
                     .info-label { font-weight: bold; }
+
+                    /* Speed control button */
+                    .speed-btn { position: fixed; bottom: 10px; right: 26px; z-index: 1000; background: #555; color: white; border: none; border-radius: 8px; padding: 8px 14px; font-size: 18px; font-family: monospace; font-weight: bold; cursor: pointer; letter-spacing: 1px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: background 0.15s; }
+                    .speed-btn:hover { background: #333; }
                 """
                     )
                 }
@@ -233,9 +237,29 @@ fun saveHtmlReplay(
                     }
                 }
             }
+            // Speed control button
+            unsafe {
+                raw("""<button class="speed-btn" id="speed-btn" title="Playback speed">&#x25B6;&#x25B6;</button>""")
+            }
             script {
                 unsafe {
                     raw("""
+                    // Speed control: 3 levels
+                    const speedLevels = [
+                        { label: '\u25B6', divisor: 1 },
+                        { label: '\u25B6\u25B6', divisor: 3 },
+                        { label: '\u25B6\u25B6\u25B6', divisor: 10 }
+                    ];
+                    let speedIndex = 1;
+                    let speedDivisor = 3;
+                    const speedBtn = document.getElementById('speed-btn');
+                    speedBtn.addEventListener('click', function() {
+                        speedIndex = (speedIndex + 1) % speedLevels.length;
+                        speedDivisor = speedLevels[speedIndex].divisor;
+                        speedBtn.innerHTML = speedLevels[speedIndex].label;
+                    });
+                    function delay(ms) { return Math.max(ms / speedDivisor, 1); }
+
                     const allMessages = document.querySelectorAll('.message');
                     let current = 1; // Start from 1 to skip the system message
                     
@@ -294,7 +318,7 @@ fun saveHtmlReplay(
                     function showNext() {
                         if (current >= allMessages.length) {
                             // All messages have been shown, now show the results grid
-                            setTimeout(showResultsGrid, 1000);
+                            setTimeout(showResultsGrid, delay(1000));
                             return;
                         }
                         const el = allMessages[current];
@@ -309,7 +333,7 @@ fun saveHtmlReplay(
                                 el.scrollIntoView({ behavior: 'smooth', block: 'end' });
                             }, 100);
                             current++;
-                            setTimeout(showNext, 600);
+                            setTimeout(showNext, delay(600));
                             return;
                         }
                         
@@ -321,7 +345,7 @@ fun saveHtmlReplay(
                         if (role === 'guess') {
                             // Guess messages don't need typing animation, just show them
                             current++;
-                            setTimeout(showNext, 800);
+                            setTimeout(showNext, delay(800));
                             return;
                         }
                         
@@ -330,7 +354,7 @@ fun saveHtmlReplay(
                         if (!contentP) {
                             console.error('No content found for message:', el);
                             current++;
-                            setTimeout(showNext, 800);
+                            setTimeout(showNext, delay(800));
                             return;
                         }
                         const text = contentP.innerText;
@@ -340,27 +364,30 @@ fun saveHtmlReplay(
                         
                         function typeChar() {
                             if (i < text.length) {
-                                contentP.innerText += text.charAt(i);
-                                i++;
-                                
+                                // Type multiple characters per tick at higher speeds
+                                const charsPerTick = speedDivisor;
+                                const end = Math.min(i + charsPerTick, text.length);
+                                contentP.innerText += text.substring(i, end);
+                                i = end;
+
                                 // Scroll periodically during typing to keep content visible
                                 const now = Date.now();
-                                if (now - lastScrollTime > 200) {
+                                if (now - lastScrollTime > delay(200)) {
                                     autoScroll();
                                     lastScrollTime = now;
                                 }
-                                
-                                setTimeout(typeChar, 5);
+
+                                setTimeout(typeChar, delay(5));
                             } else {
                                 if (role === 'reasoning') {
                                     // Get the attempt index directly from the message attribute
                                     const attemptIndex = parseInt(el.getAttribute('data-attempt-index'));
                                     // Show board tiles and guess message for this attempt
                                     showGuessMessage(attemptIndex);
-                                    setTimeout(() => revealRowsForAttempt(attemptIndex), 500);
+                                    setTimeout(() => revealRowsForAttempt(attemptIndex), delay(500));
                                 }
                                 current++;
-                                setTimeout(showNext, 1500);
+                                setTimeout(showNext, delay(1500));
                             }
                         }
                         typeChar();
