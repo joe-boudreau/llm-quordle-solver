@@ -138,8 +138,18 @@ class QuordleWebDriver {
                 println("Page load timed out, but continuing anyway...")
             }
 
-            // Explicitly wait for the game board element
             val wait = org.openqa.selenium.support.ui.WebDriverWait(driver, Duration.ofSeconds(30))
+
+            // A splash page now lets you choose a game variant before the board loads.
+            // Click "Classic" to proceed to the DOM the rest of the driver expects.
+            println("Waiting for game variant splash page...")
+            wait.until { d ->
+                d.findElements(By.cssSelector("a[href*='/classic']")).isNotEmpty()
+            }
+            driver.findElement(By.cssSelector("a[href*='/classic']")).click()
+            println("Selected Classic variant.")
+
+            // Explicitly wait for the game board element
             wait.until { d ->
                 d.findElements(By.cssSelector("div[aria-label='Game Boards']")).isNotEmpty()
             }
