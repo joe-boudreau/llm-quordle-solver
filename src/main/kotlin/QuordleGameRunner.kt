@@ -66,7 +66,8 @@ class QuordleGameRunner {
 
             val finalMessages = mutableListOf<ChatMessage>()
 
-            val guesserStats = llmGuesserStatsRepository.updateStats(gameState)
+            val reasoningModel = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A"
+            val guesserStats = llmGuesserStatsRepository.updateStats(gameState, reasoningModel)
 
             if (gameState.isSolved()) {
                 val (imagePrompt, imageBase64) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())

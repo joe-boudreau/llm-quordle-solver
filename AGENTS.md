@@ -17,6 +17,7 @@ These instructions apply to the entire repository. The project is a small Kotlin
 - `src/main/kotlin/GuesserStatsRepository.kt`: local/S3 statistics persistence.
 - `src/main/kotlin/S3BucketRepository.kt`: synchronous S3 adapter, fixed to `ca-central-1`.
 - `src/main/kotlin/HtmlGenerator.kt`: replay HTML/CSS/JavaScript generation; also has a standalone `HtmlGeneratorKt` main that rebuilds HTML from saved replay JSON.
+- `src/test/kotlin/`: deterministic unit tests; keep external services out of this suite.
 - `uBOL-ext/`: vendored uBlock Origin Lite extension loaded by Chrome. Do not broadly reformat, regenerate, or edit it for ordinary application changes.
 - `output/`: local generated replay, stats, and image artifacts. Treat contents as disposable runtime data, not fixtures.
 - `Dockerfile`: local/runtime image. `Dockerfile-AWS` and `docker-build-AWS.sh` build and publish the Lambda image.
@@ -39,7 +40,7 @@ Changes across these boundaries should remain synchronized:
 - Compile and run automated checks with `./gradlew test`.
 - Build the executable fat JAR with `./gradlew shadowJar`; the output is `build/libs/quordle-solver-all.jar` and its main class is `MainKt`.
 - Use `./gradlew clean test shadowJar` for a fuller verification when build configuration, dependencies, packaging, or entry points change.
-- There is currently no configured formatter/linter and no authored `src/test` suite. Do not claim test coverage from `test` when Gradle reports `NO-SOURCE`.
+- There is currently no configured formatter/linter. Keep formatting consistent with the surrounding Kotlin code.
 
 `./gradlew run`, `docker-run.sh`, and running the fat JAR execute the real daily game. They require network access, Chrome/Chromedriver compatibility, and paid/external services, and they mutate replay/stat outputs. Do not use them as routine validation. Never run `docker-build-AWS.sh` unless the user explicitly requests a deployment: it logs into a fixed ECR registry and pushes an image.
 

@@ -35,3 +35,8 @@ bin/
 
 # Ignore Gradle build output directory
 build
+/.env-local
+/.env-prod
+/output
+/.idea
+/gradle

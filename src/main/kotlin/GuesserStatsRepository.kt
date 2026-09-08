@@ -1,5 +1,14 @@
 import java.io.File
+import java.time.LocalDate
 import kotlinx.serialization.Serializable
+
+@Serializable
+data class DailyRunStats(
+    val date: String,
+    val numberOfGuesses: Int,
+    val success: Boolean,
+    val reasoningModel: String,
+)
 
 @Serializable
 data class GuesserStats(
@@ -7,19 +16,36 @@ data class GuesserStats(
     var lossCount: Int = 0,
     val attemptsDistributionForWins: MutableMap<Int, Int> = (1..9).associateWith { 0 }.toMutableMap(),
     var currentStreak: Int = 0,
+    val dailyRuns: MutableList<DailyRunStats> = mutableListOf(),
 )
 
 private val STATS_FILENAME = "${OUTPUT_FILEPATH}llm_guesser_stats.json"
 private const val STATS_S3_KEY = "llm_guesser_stats.json"
 
-class GuesserStatsRepository(private val s3Repository: S3BucketRepository? = null) {
+class GuesserStatsRepository(
+    private val s3Repository: S3BucketRepository? = null,
+    private val statsFile: File = File(STATS_FILENAME),
+) {
 
-    fun updateStats(gameState: GameState): GuesserStats {
+    fun updateStats(
+        gameState: GameState,
+        reasoningModel: String,
+        runDate: LocalDate = LocalDate.now(),
+    ): GuesserStats {
         // Load existing stats
         val stats = loadStats()
 
         val isWin = gameState.isSolved()
         val attempts = gameState.numAttempts()
+        stats.dailyRuns.add(
+            DailyRunStats(
+                date = runDate.toString(),
+                numberOfGuesses = attempts,
+                success = isWin,
+                reasoningModel = reasoningModel,
+            )
+        )
+
         if (isWin) {
             stats.winCount++
             stats.attemptsDistributionForWins[attempts] = stats.attemptsDistributionForWins[attempts]!! + 1
@@ -45,7 +71,6 @@ class GuesserStatsRepository(private val s3Repository: S3BucketRepository? = nul
             }
         } else {
             // Load from local filesystem
-            val statsFile = File(STATS_FILENAME)
             if (statsFile.exists()) {
                 kotlinx.serialization.json.Json.decodeFromString<GuesserStats>(statsFile.readText())
             } else {
@@ -62,7 +87,6 @@ class GuesserStatsRepository(private val s3Repository: S3BucketRepository? = nul
             s3Repository.uploadFile(STATS_S3_KEY, jsonContent)
         } else {
             // Save to local filesystem
-            val statsFile = File(STATS_FILENAME)
             statsFile.writeText(jsonContent)
         }
     }
