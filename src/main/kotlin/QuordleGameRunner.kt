@@ -2,6 +2,7 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import kotlinx.serialization.json.Json
 import java.io.File
+import kotlin.time.TimeSource
 
 val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 const val IMAGE_FILENAME = "generated_quordle_art.png"
@@ -34,6 +35,7 @@ class QuordleGameRunner {
         try {
             quordleDriver.initializeDriver()
             var gameState = quordleDriver.parseGameState()
+            val gameStartMark = TimeSource.Monotonic.markNow()
 
             while (gameState.isInProgress()) {
 
@@ -51,6 +53,9 @@ class QuordleGameRunner {
                 }
             }
 
+            val gameDuration = gameStartMark.elapsedNow()
+            println("Game finished in $gameDuration")
+
             val wordAnswers = quordleDriver.getWordAnswers()
 
             val systemMessage = llmGuesser.allMessages.first { it.role == ChatRole.System }
@@ -67,7 +72,12 @@ class QuordleGameRunner {
             val finalMessages = mutableListOf<ChatMessage>()
 
             val reasoningModel = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A"
-            val guesserStats = llmGuesserStatsRepository.updateStats(gameState, reasoningModel)
+            val guesserStats = llmGuesserStatsRepository.updateStats(
+                gameState = gameState,
+                reasoningModel = reasoningModel,
+                duration = gameDuration,
+                reasoningEffort = llmGuesser.reasoningEffort,
+            )
 
             if (gameState.isSolved()) {
                 val (imagePrompt, imageBase64) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())

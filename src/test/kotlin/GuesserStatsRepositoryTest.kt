@@ -3,7 +3,10 @@ import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class GuesserStatsRepositoryTest {
 
@@ -14,6 +17,8 @@ class GuesserStatsRepositoryTest {
         repository.updateStats(
             gameState = gameState,
             reasoningModel = "test-reasoning-model",
+            duration = 95.seconds + 250.milliseconds,
+            reasoningEffort = "high",
             runDate = LocalDate.parse("2026-09-08"),
         )
         val stats = repository.loadStats()
@@ -25,6 +30,8 @@ class GuesserStatsRepositoryTest {
         assertEquals(4, stats.dailyRuns.single().numberOfGuesses)
         assertTrue(stats.dailyRuns.single().success)
         assertEquals("test-reasoning-model", stats.dailyRuns.single().reasoningModel)
+        assertEquals(95_250L, stats.dailyRuns.single().durationMillis)
+        assertEquals("high", stats.dailyRuns.single().reasoningEffort)
     }
 
     @Test
@@ -35,12 +42,14 @@ class GuesserStatsRepositoryTest {
             gameState = gameState,
             reasoningModel = "test-reasoning-model",
             runDate = LocalDate.parse("2026-09-09"),
+            reasoningEffort = "medium",
         )
 
         assertEquals(0, stats.winCount)
         assertEquals(1, stats.lossCount)
         assertEquals(9, stats.dailyRuns.single().numberOfGuesses)
         assertFalse(stats.dailyRuns.single().success)
+        assertEquals("medium", repository.loadStats().dailyRuns.single().reasoningEffort)
     }
 
     @Test
@@ -48,11 +57,13 @@ class GuesserStatsRepositoryTest {
         repository.updateStats(
             gameState = solvedGameState(numberOfGuesses = 5),
             reasoningModel = "first-model",
+            reasoningEffort = "high",
             runDate = LocalDate.parse("2026-09-08"),
         )
         repository.updateStats(
             gameState = failedGameState(),
             reasoningModel = "second-model",
+            reasoningEffort = "low",
             runDate = LocalDate.parse("2026-09-09"),
         )
 
@@ -61,6 +72,7 @@ class GuesserStatsRepositoryTest {
         assertEquals(2, dailyRuns.size)
         assertEquals(listOf("2026-09-08", "2026-09-09"), dailyRuns.map { it.date })
         assertEquals(listOf("first-model", "second-model"), dailyRuns.map { it.reasoningModel })
+        assertEquals(listOf("high", "low"), dailyRuns.map { it.reasoningEffort })
     }
 
     @Test
@@ -83,6 +95,28 @@ class GuesserStatsRepositoryTest {
             assertEquals(2, stats.winCount)
             assertEquals(1, stats.lossCount)
             assertTrue(stats.dailyRuns.isEmpty())
+        } finally {
+            statsFile.delete()
+        }
+    }
+
+    @Test
+    fun `loadStats accepts legacy daily runs without duration or reasoning effort`() {
+        val statsFile = Files.createTempFile("legacy-daily-runs", ".json").toFile()
+        try {
+            statsFile.writeText(
+                """
+                {
+                  "winCount": 1,
+                  "dailyRuns": [{"date": "2026-09-08", "numberOfGuesses": 6, "success": true, "reasoningModel": "old-model"}]
+                }
+                """.trimIndent()
+            )
+
+            val stats = GuesserStatsRepository(statsFile = statsFile).loadStats()
+
+            assertNull(stats.dailyRuns.single().durationMillis)
+            assertNull(stats.dailyRuns.single().reasoningEffort)
         } finally {
             statsFile.delete()
         }

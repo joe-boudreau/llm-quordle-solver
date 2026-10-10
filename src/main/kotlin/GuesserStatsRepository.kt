@@ -1,6 +1,7 @@
 import java.io.File
 import java.time.LocalDate
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration
 
 @Serializable
 data class DailyRunStats(
@@ -8,6 +9,8 @@ data class DailyRunStats(
     val numberOfGuesses: Int,
     val success: Boolean,
     val reasoningModel: String,
+    val durationMillis: Long? = null,
+    val reasoningEffort: String? = null,
 )
 
 @Serializable
@@ -30,7 +33,9 @@ class GuesserStatsRepository(
     fun updateStats(
         gameState: GameState,
         reasoningModel: String,
+        duration: Duration? = null,
         runDate: LocalDate = LocalDate.now(),
+        reasoningEffort: String? = null,
     ): GuesserStats {
         // Load existing stats
         val stats = loadStats()
@@ -43,6 +48,8 @@ class GuesserStatsRepository(
                 numberOfGuesses = attempts,
                 success = isWin,
                 reasoningModel = reasoningModel,
+                durationMillis = duration?.inWholeMilliseconds,
+                reasoningEffort = reasoningEffort,
             )
         )
 
