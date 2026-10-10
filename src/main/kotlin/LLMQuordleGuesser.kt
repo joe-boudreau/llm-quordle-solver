@@ -17,7 +17,10 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-class LLMQuordleGuesser {
+class LLMQuordleGuesser(
+    chatModelId: String = System.getenv("OPENAI_CHAT_MODEL_ID"),
+    val reasoningEffort: String = System.getenv("OPENAI_REASONING_EFFORT") ?: "medium",
+) {
 
 
     private val systemPrompt = """
@@ -103,8 +106,7 @@ class LLMQuordleGuesser {
         logging = LoggingConfig(logLevel = LogLevel.Headers)
     )
 
-    private val modelId = ModelId(System.getenv("OPENAI_CHAT_MODEL_ID"))
-    val reasoningEffort: String = System.getenv("OPENAI_REASONING_EFFORT") ?: "medium"
+    private val modelId = ModelId(chatModelId)
 
     fun guessWord(gameState: GameState): String {
         val prompt = userPromptTemplate.replace("{gameState}", gameState.toString())

@@ -5,10 +5,48 @@ import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.*
 import java.io.File
 
-class S3BucketRepository(private val bucketName: String) {
-    private val s3Client = S3Client.builder()
+class S3BucketRepository(
+    private val bucketName: String,
+    private val s3Client: S3Client = S3Client.builder()
         .region(Region.CA_CENTRAL_1) // You can make this configurable if needed
-        .build()
+        .build(),
+) {
+
+    fun downloadVersionedFile(key: String): StatsSnapshot? {
+        return try {
+            val request = GetObjectRequest.builder().bucket(bucketName).key(key).build()
+            val response = s3Client.getObject(request, ResponseTransformer.toBytes())
+            StatsSnapshot(response.asUtf8String(), response.response().eTag())
+        } catch (e: NoSuchKeyException) {
+            null
+        }
+    }
+
+    fun uploadFileIfUnchanged(key: String, content: String, expectedVersion: String?): Boolean {
+        val request = PutObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .contentType(getContentType(key))
+            // The pinned SDK predates modeled conditional-write fields.
+            .overrideConfiguration { builder ->
+                if (expectedVersion == null) {
+                    builder.putHeader("If-None-Match", "*")
+                } else {
+                    builder.putHeader("If-Match", expectedVersion)
+                }
+            }
+            .build()
+        return try {
+            s3Client.putObject(request, RequestBody.fromString(content))
+            true
+        } catch (e: S3Exception) {
+            if (e.statusCode() in listOf(409, 412) || (expectedVersion != null && e.statusCode() == 404)) {
+                false
+            } else {
+                throw e
+            }
+        }
+    }
 
     fun uploadFile(key: String, content: String) {
         try {

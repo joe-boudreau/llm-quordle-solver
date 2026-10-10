@@ -11,23 +11,26 @@ data class DailyRunStats(
     val reasoningModel: String,
     val durationMillis: Long? = null,
     val reasoningEffort: String? = null,
+    val isMainRun: Boolean = true,
 )
 
 @Serializable
 data class GuesserStats(
-    var winCount: Int = 0,
-    var lossCount: Int = 0,
-    val attemptsDistributionForWins: MutableMap<Int, Int> = (1..9).associateWith { 0 }.toMutableMap(),
-    var currentStreak: Int = 0,
     val dailyRuns: MutableList<DailyRunStats> = mutableListOf(),
 )
 
 private val STATS_FILENAME = "${OUTPUT_FILEPATH}llm_guesser_stats.json"
 private const val STATS_S3_KEY = "llm_guesser_stats.json"
+private val statsJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
 class GuesserStatsRepository(
-    private val s3Repository: S3BucketRepository? = null,
-    private val statsFile: File = File(STATS_FILENAME),
+    s3Repository: S3BucketRepository? = null,
+    statsFile: File = File(STATS_FILENAME),
+    private val store: StatsStore = if (s3Repository != null) {
+        S3StatsStore(s3Repository, STATS_S3_KEY)
+    } else {
+        FileStatsStore(statsFile)
+    },
 ) {
 
     fun updateStats(
@@ -36,65 +39,37 @@ class GuesserStatsRepository(
         duration: Duration? = null,
         runDate: LocalDate = LocalDate.now(),
         reasoningEffort: String? = null,
+        isMainRun: Boolean = true,
     ): GuesserStats {
-        // Load existing stats
-        val stats = loadStats()
-
         val isWin = gameState.isSolved()
         val attempts = gameState.numAttempts()
-        stats.dailyRuns.add(
-            DailyRunStats(
-                date = runDate.toString(),
-                numberOfGuesses = attempts,
-                success = isWin,
-                reasoningModel = reasoningModel,
-                durationMillis = duration?.inWholeMilliseconds,
-                reasoningEffort = reasoningEffort,
-            )
+        val dailyRun = DailyRunStats(
+            date = runDate.toString(),
+            numberOfGuesses = attempts,
+            success = isWin,
+            reasoningModel = reasoningModel,
+            durationMillis = duration?.inWholeMilliseconds,
+            reasoningEffort = reasoningEffort,
+            isMainRun = isMainRun,
         )
 
-        if (isWin) {
-            stats.winCount++
-            stats.attemptsDistributionForWins[attempts] = stats.attemptsDistributionForWins[attempts]!! + 1
-            stats.currentStreak++
-        } else {
-            stats.lossCount++
-            stats.currentStreak = 0
-        }
+        repeat(10) {
+            val snapshot = store.read()
+            val stats = decodeStats(snapshot)
+            stats.dailyRuns.add(dailyRun)
 
-        // Save updated stats
-        saveStats(stats)
-        return stats
+            val content = statsJson.encodeToString(stats)
+            if (store.write(content, snapshot?.version)) {
+                return stats
+            }
+        }
+        error("Stats changed during all 10 save attempts; result was not saved")
     }
 
     fun loadStats(): GuesserStats {
-        return if (s3Repository != null) {
-            // Load from S3
-            val content = s3Repository.downloadFile(STATS_S3_KEY)
-            if (content != null) {
-                kotlinx.serialization.json.Json.decodeFromString<GuesserStats>(content)
-            } else {
-                GuesserStats()
-            }
-        } else {
-            // Load from local filesystem
-            if (statsFile.exists()) {
-                kotlinx.serialization.json.Json.decodeFromString<GuesserStats>(statsFile.readText())
-            } else {
-                GuesserStats()
-            }
-        }
+        return decodeStats(store.read())
     }
 
-    private fun saveStats(stats: GuesserStats) {
-        val jsonContent = kotlinx.serialization.json.Json.encodeToString(stats)
-
-        if (s3Repository != null) {
-            // Save to S3
-            s3Repository.uploadFile(STATS_S3_KEY, jsonContent)
-        } else {
-            // Save to local filesystem
-            statsFile.writeText(jsonContent)
-        }
-    }
+    private fun decodeStats(snapshot: StatsSnapshot?): GuesserStats =
+        snapshot?.let { statsJson.decodeFromString<GuesserStats>(it.content) } ?: GuesserStats()
 }

@@ -42,12 +42,12 @@ fun saveHtmlReplay(
     systemMessage: ChatMessage,
     guessChat: List<Pair<ChatMessage, QuordleGuessResponse>>,
     finalMessages: List<ChatMessage>,
-    s3Repository: S3BucketRepository? = null
+    s3Repository: S3BucketRepository? = null,
+    modelId: String = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A",
+    reasoningEffort: String = System.getenv("OPENAI_REASONING_EFFORT") ?: "medium",
 ) {
 
     val todaysDate = java.time.LocalDate.now().toString()
-    val modelId = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A"
-    val reasoningEffort = System.getenv("OPENAI_REASONING_EFFORT") ?: "N/A"
     val imageModelId = System.getenv("OPENAI_IMAGE_MODEL_ID") ?: "N/A"
     val quordleLink = "https://www.merriam-webster.com/games/quordle/#/"
 

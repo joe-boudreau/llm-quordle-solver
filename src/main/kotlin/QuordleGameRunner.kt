@@ -7,7 +7,7 @@ import kotlin.time.TimeSource
 val OUTPUT_FILEPATH = System.getenv("OUTPUT_FILEPATH") ?: "./"
 const val IMAGE_FILENAME = "generated_quordle_art.png"
 
-class QuordleGameRunner {
+class QuordleGameRunner(private val configuration: RunConfiguration = RunConfiguration.from()) {
 
     fun runGame() {
         println("Starting QuordleWebDriver...")
@@ -28,8 +28,7 @@ class QuordleGameRunner {
         }
 
         val quordleDriver = QuordleWebDriver()
-        val llmGuesser = LLMQuordleGuesser()
-        val llmImageGenerator = LLMImageGenerator()
+        val llmGuesser = LLMQuordleGuesser(configuration.chatModelId, configuration.reasoningEffort)
         val llmGuesserStatsRepository = GuesserStatsRepository(s3Repository)
 
         try {
@@ -56,6 +55,19 @@ class QuordleGameRunner {
             val gameDuration = gameStartMark.elapsedNow()
             println("Game finished in $gameDuration")
 
+            val guesserStats = llmGuesserStatsRepository.updateStats(
+                gameState = gameState,
+                reasoningModel = configuration.chatModelId,
+                duration = gameDuration,
+                reasoningEffort = configuration.reasoningEffort,
+                isMainRun = configuration.generateHtmlReplay,
+            )
+
+            if (!configuration.generateHtmlReplay) {
+                println("Run completed. Stats saved.")
+                return
+            }
+
             val wordAnswers = quordleDriver.getWordAnswers()
 
             val systemMessage = llmGuesser.allMessages.first { it.role == ChatRole.System }
@@ -71,16 +83,8 @@ class QuordleGameRunner {
 
             val finalMessages = mutableListOf<ChatMessage>()
 
-            val reasoningModel = System.getenv("OPENAI_CHAT_MODEL_ID") ?: "N/A"
-            val guesserStats = llmGuesserStatsRepository.updateStats(
-                gameState = gameState,
-                reasoningModel = reasoningModel,
-                duration = gameDuration,
-                reasoningEffort = llmGuesser.reasoningEffort,
-            )
-
             if (gameState.isSolved()) {
-                val (imagePrompt, imageBase64) = llmImageGenerator.generateImageUsingWords(gameState.getFinalWords())
+                val (imagePrompt, imageBase64) = LLMImageGenerator().generateImageUsingWords(gameState.getFinalWords())
                 saveImage(imageBase64, IMAGE_FILENAME, s3Repository)
                 finalMessages.addAll(getGameSolvedFinalMessages(imagePrompt, IMAGE_FILENAME, guesserStats))
             } else {
@@ -101,7 +105,9 @@ class QuordleGameRunner {
                 systemMessage,
                 guessChat,
                 finalMessages,
-                s3Repository
+                s3Repository,
+                modelId = configuration.chatModelId,
+                reasoningEffort = configuration.reasoningEffort,
             )
 
         } finally {
@@ -145,7 +151,8 @@ private fun getFinalSystemMessages(guesserStats: GuesserStats) = listOf(
     ),
 )
 
-private fun generateStatsHtml(stats: GuesserStats): String {
+private fun generateStatsHtml(guesserStats: GuesserStats): String {
+    val stats = summarizeRuns(guesserStats.dailyRuns.filter { it.isMainRun })
     val totalGames = stats.winCount + stats.lossCount
     val winPercentage = if (totalGames > 0) (stats.winCount * 100.0 / totalGames) else 0.0
 
@@ -167,7 +174,7 @@ private fun generateStatsHtml(stats: GuesserStats): String {
 
     return """
     <div class="stats-container">
-        <h3 class="stats-title">📊 LLM Quordle Stats</h3>
+        <h3 class="stats-title">📊 Recorded Main Runs</h3>
 
         <div class="stats-overview">
             <div class="stat-item">
@@ -189,7 +196,7 @@ private fun generateStatsHtml(stats: GuesserStats): String {
         </div>
 
         <div class="stats-distribution">
-            <h4 class="distribution-title">Total Attempts (Wins Only)</h4>
+            <h4 class="distribution-title">Recorded Attempts (Wins Only)</h4>
             <div class="stat-bars">
                 $distributionBars
             </div>
